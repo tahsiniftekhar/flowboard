@@ -1,0 +1,27 @@
+# dependencies
+node_modules/
+
+# environment
+.env
+.env.*
+!.env.example
+
+# Next.js
+.next/
+out/
+
+# NestJS
+dist/
+
+# Prisma
+prisma/generated/
+
+# logs
+*.log
+
+# OS
+.DS_Store
+
+# IDE
+.idea/
+.vscode/
