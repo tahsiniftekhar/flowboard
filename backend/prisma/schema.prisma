@@ -1,0 +1,79 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum BoardRole {
+  OWNER
+  MEMBER
+}
+
+model User {
+  id           String   @id @default(uuid()) @db.Uuid
+  email        String   @unique
+  name         String
+  passwordHash  String
+  createdAt    DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime @updatedAt @db.Timestamptz(3)
+  ownedBoards  Board[]
+  memberships  BoardMember[]
+}
+
+model Board {
+  id        String        @id @default(uuid()) @db.Uuid
+  name      String        @db.VarChar(120)
+  ownerId   String        @db.Uuid
+  owner     User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  members   BoardMember[]
+  columns   Column[]
+  createdAt DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime      @updatedAt @db.Timestamptz(3)
+  @@index([ownerId])
+}
+
+model BoardMember {
+  id        String     @id @default(uuid()) @db.Uuid
+  boardId   String     @db.Uuid
+  userId    String     @db.Uuid
+  role      BoardRole  @default(MEMBER)
+  createdAt DateTime   @default(now()) @db.Timestamptz(3)
+  board     Board      @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([boardId, userId])
+  @@index([userId])
+}
+
+model Column {
+  id        String   @id @default(uuid()) @db.Uuid
+  boardId   String   @db.Uuid
+  name      String   @db.VarChar(80)
+  position  Int
+  board     Board    @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  tasks     Task[]
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+  @@unique([boardId, position])
+}
+
+model Task {
+  id          String   @id @default(uuid()) @db.Uuid
+  columnId    String   @db.Uuid
+  title       String   @db.VarChar(200)
+  description String?
+  position    Int
+  column      Column   @relation(fields: [columnId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @db.Timestamptz(3)
+  @@unique([columnId, position])
+  @@index([columnId])
+}

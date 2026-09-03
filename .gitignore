@@ -23,5 +23,13 @@ prisma/generated/
 .DS_Store
 
 # IDE
+AGENTS.md
 .idea/
 .vscode/
+.devin/
+.claude/
+.agents/
+.agent/
+.cursor/
+.windsurf/
+prisma-next.md
