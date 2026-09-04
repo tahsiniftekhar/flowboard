@@ -7,7 +7,15 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
+import {
+  IsInt,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  IsUUID,
+  MaxLength,
+  Min,
+} from 'class-validator';
 import { AuthUser } from '../auth/auth.service';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -33,6 +41,15 @@ class UpdateTaskDto {
   @IsOptional()
   @IsString()
   description?: string;
+}
+
+class MoveTaskDto {
+  @IsUUID()
+  destinationColumnId: string;
+
+  @IsInt()
+  @Min(0)
+  destinationIndex: number;
 }
 
 @Controller()
@@ -71,5 +88,19 @@ export class TasksController {
   @Delete('tasks/:id')
   async deleteTask(@CurrentUser() user: AuthUser, @Param('id') taskId: string) {
     return this.tasksService.deleteTask(taskId, user.id);
+  }
+
+  @Patch('tasks/:taskId/move')
+  async moveTask(
+    @CurrentUser() user: AuthUser,
+    @Param('taskId') taskId: string,
+    @Body() dto: MoveTaskDto,
+  ) {
+    return this.tasksService.moveTask(
+      taskId,
+      user.id,
+      dto.destinationColumnId,
+      dto.destinationIndex,
+    );
   }
 }
