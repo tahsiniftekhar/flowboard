@@ -1,0 +1,75 @@
+import {
+  Body,
+  Controller,
+  Delete,
+  Param,
+  Patch,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
+import { IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
+import { AuthUser } from '../auth/auth.service';
+import { CurrentUser } from '../auth/current-user.decorator';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { TasksService } from './tasks.service';
+
+class CreateTaskDto {
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(200)
+  title: string;
+
+  @IsOptional()
+  @IsString()
+  description?: string;
+}
+
+class UpdateTaskDto {
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(200)
+  title: string;
+
+  @IsOptional()
+  @IsString()
+  description?: string;
+}
+
+@Controller()
+@UseGuards(JwtAuthGuard)
+export class TasksController {
+  constructor(private readonly tasksService: TasksService) {}
+
+  @Post('columns/:columnId/tasks')
+  async createTask(
+    @CurrentUser() user: AuthUser,
+    @Param('columnId') columnId: string,
+    @Body() dto: CreateTaskDto,
+  ) {
+    return this.tasksService.createTask(
+      columnId,
+      user.id,
+      dto.title,
+      dto.description,
+    );
+  }
+
+  @Patch('tasks/:id')
+  async updateTask(
+    @CurrentUser() user: AuthUser,
+    @Param('id') taskId: string,
+    @Body() dto: UpdateTaskDto,
+  ) {
+    return this.tasksService.updateTask(
+      taskId,
+      user.id,
+      dto.title,
+      dto.description,
+    );
+  }
+
+  @Delete('tasks/:id')
+  async deleteTask(@CurrentUser() user: AuthUser, @Param('id') taskId: string) {
+    return this.tasksService.deleteTask(taskId, user.id);
+  }
+}
