@@ -46,6 +46,14 @@ export class BoardsService {
         owner: {
           select: { id: true, name: true, email: true },
         },
+        columns: {
+          orderBy: { position: 'asc' },
+          include: {
+            tasks: {
+              orderBy: { position: 'asc' },
+            },
+          },
+        },
       },
     });
 

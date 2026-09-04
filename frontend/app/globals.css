@@ -1,26 +1,466 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --ink: #17211f;
+  --muted: #6d7974;
+  --paper: #f5f4ef;
+  --surface: #fffefa;
+  --line: #dedfd7;
+  --teal: #167c72;
+  --coral: #e77c62;
 }
-
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-background: var(--paper);
+  --color-foreground: var(--ink);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  box-sizing: border-box;
 }
-
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--paper);
+  color: var(--ink);
   font-family: Arial, Helvetica, sans-serif;
+}
+button,
+input,
+textarea {
+  font: inherit;
+}
+button {
+  cursor: pointer;
+}
+.app-shell {
+  min-height: 100vh;
+  display: flex;
+  background: radial-gradient(circle at 80% 0%, #fffef8 0, transparent 34%), var(--paper);
+}
+.sidebar {
+  width: 275px;
+  padding: 28px 22px;
+  border-right: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: rgba(255, 254, 250, 0.7);
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 18px;
+  margin-bottom: 28px;
+}
+.brand span {
+  background: var(--teal);
+  color: white;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 800;
+}
+.profile {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--line);
+}
+.profile strong,
+.profile small {
+  display: block;
+}
+.profile small,
+.muted {
+  color: var(--muted);
+  font-size: 12px;
+}
+.avatar {
+  width: 35px;
+  height: 35px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: #f4c7ad;
+  color: #703e2c;
+  font-weight: 700;
+}
+.sidebar-label,
+.eyebrow {
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  font-weight: 800;
+  color: var(--muted);
+}
+.sidebar-label {
+  margin-top: 18px;
+}
+.board-link {
+  border: 0;
+  background: transparent;
+  padding: 9px 10px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  text-align: left;
+  color: var(--ink);
+  border-radius: 7px;
+}
+.board-link:hover,
+.board-link.selected {
+  background: #e4eeea;
+  color: var(--teal);
+}
+.board-link span {
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  background: #d4e4dd;
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  font-weight: 700;
+}
+.new-board {
+  margin-top: 12px;
+  display: flex;
+  gap: 6px;
+  flex-direction: column;
+}
+.new-board input,
+input,
+textarea {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 10px 11px;
+  background: var(--surface);
+  color: var(--ink);
+  outline: none;
+}
+.new-board input:focus,
+input:focus,
+textarea:focus {
+  border-color: var(--teal);
+}
+.button {
+  border: 0;
+  border-radius: 6px;
+  padding: 10px 14px;
+  background: var(--teal);
+  color: white;
+  font-weight: 700;
+}
+.button:hover {
+  background: #0f675f;
+}
+.logout {
+  margin-top: auto;
+  border: 0;
+  color: var(--muted);
+  background: none;
+  text-align: left;
+  padding: 10px 0;
+}
+.main-content {
+  flex: 1;
+  min-width: 0;
+}
+.welcome {
+  max-width: 600px;
+  padding: 17vh 8vw;
+}
+.welcome h1 {
+  font-size: clamp(42px, 5vw, 72px);
+  line-height: 0.98;
+  margin: 18px 0;
+  letter-spacing: -0.04em;
+}
+.welcome p:not(.eyebrow) {
+  color: var(--muted);
+  max-width: 330px;
+  line-height: 1.6;
+}
+.board-space {
+  padding: 45px clamp(24px, 5vw, 72px);
+}
+.board-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 25px;
+  margin-bottom: 32px;
+}
+.board-header h2 {
+  font-size: 34px;
+  margin: 7px 0 0;
+  letter-spacing: -0.03em;
+}
+.share-control form,
+.inline-form {
+  display: flex;
+  gap: 7px;
+}
+.share-control input {
+  width: 215px;
+}
+.share-control small {
+  color: var(--teal);
+  display: block;
+  margin-top: 6px;
+}
+.inline-form {
+  max-width: 430px;
+  margin-bottom: 30px;
+}
+.inline-form input {
+  flex: 1;
+}
+.kanban-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(245px, 1fr));
+  gap: 15px;
+  align-items: start;
+}
+.column {
+  background: #e9ebe4;
+  padding: 14px;
+  min-height: 270px;
+  border-radius: 8px;
+}
+.column-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 15px;
+}
+.column-heading > div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.column-heading h3 {
+  margin: 0;
+  font-size: 14px;
+}
+.column-index {
+  color: var(--coral);
+  font-size: 11px;
+  font-weight: 800;
+}
+.column-heading button,
+.task-actions button,
+.modal-heading button {
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 11px;
+}
+.task-list {
+  display: grid;
+  gap: 9px;
+  min-height: 150px;
+}
+.task-card {
+  background: var(--surface);
+  border: 1px solid rgba(222, 223, 215, 0.8);
+  border-radius: 6px;
+  padding: 13px;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  box-shadow: 0 3px 10px rgba(20, 30, 25, 0.03);
+}
+.task-card h4 {
+  margin: 0;
+  font-size: 14px;
+}
+.task-card p {
+  color: var(--muted);
+  font-size: 12px;
+  margin: 6px 0 0;
+  line-height: 1.4;
+}
+.task-actions {
+  display: flex;
+  gap: 4px;
+}
+.task-actions button:last-child {
+  font-size: 18px;
+  line-height: 12px;
+}
+.column-empty {
+  color: var(--muted);
+  font-size: 12px;
+  text-align: center;
+  padding: 20px 0;
+}
+.add-task {
+  width: 100%;
+  border: 1px dashed #b9c0b8;
+  background: transparent;
+  color: var(--muted);
+  padding: 9px;
+  border-radius: 5px;
+  margin-top: 12px;
+}
+.empty-state,
+.state-panel {
+  padding: 50px;
+  text-align: center;
+  color: var(--muted);
+}
+.empty-state strong,
+.empty-state span {
+  display: block;
+}
+.empty-state strong {
+  color: var(--ink);
+  margin-bottom: 6px;
+}
+.error {
+  color: #b64d3d;
+  font-size: 12px;
+}
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 30, 25, 0.25);
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  z-index: 2;
+}
+.modal {
+  background: var(--surface);
+  width: min(420px, 100%);
+  padding: 22px;
+  border-radius: 9px;
+  box-shadow: 0 14px 35px rgba(25, 40, 35, 0.08);
+}
+.modal-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+.modal h3 {
+  margin: 0;
+}
+.modal form,
+.auth-card {
+  display: grid;
+  gap: 13px;
+}
+.modal label,
+.auth-card label {
+  display: grid;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+}
+.modal textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+.auth-shell {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 1fr 400px;
+  gap: 8vw;
+  align-items: center;
+  padding: 8vw;
+  background: radial-gradient(circle at 15% 20%, #e2eee8 0, transparent 32%), var(--paper);
+}
+.auth-copy h1 {
+  font-size: clamp(50px, 7vw, 100px);
+  line-height: 0.9;
+  letter-spacing: -0.06em;
+  max-width: 650px;
+  margin: 18px 0;
+}
+.auth-copy > p:last-child {
+  color: var(--muted);
+  font-size: 18px;
+}
+.auth-card {
+  background: var(--surface);
+  padding: 30px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: 0 14px 35px rgba(25, 40, 35, 0.08);
+}
+.auth-card h2 {
+  margin: 6px 0 8px;
+}
+.auth-tabs {
+  display: flex;
+  gap: 18px;
+  border-bottom: 1px solid var(--line);
+}
+.auth-tabs button {
+  padding: 0 0 10px;
+  border: 0;
+  background: none;
+  color: var(--muted);
+}
+.auth-tabs .active {
+  color: var(--teal);
+  border-bottom: 2px solid var(--teal);
+}
+@media (max-width: 800px) {
+  .app-shell {
+    display: block;
+  }
+  .sidebar {
+    width: 100%;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+    padding: 18px;
+  }
+  .brand {
+    margin-bottom: 14px;
+  }
+  .profile,
+  .sidebar-label,
+  .new-board,
+  .logout {
+    display: none;
+  }
+  .board-link {
+    display: inline-flex;
+    margin-right: 4px;
+  }
+  .main-content {
+    min-height: 70vh;
+  }
+  .board-header {
+    display: block;
+  }
+  .share-control {
+    margin-top: 20px;
+  }
+  .share-control form {
+    width: 100%;
+  }
+  .share-control input {
+    flex: 1;
+  }
+  .auth-shell {
+    grid-template-columns: 1fr;
+    padding: 34px 20px;
+    gap: 25px;
+  }
+  .auth-copy h1 {
+    font-size: 56px;
+  }
+  .board-space {
+    padding: 28px 18px;
+  }
+  .kanban-grid {
+    grid-template-columns: 1fr;
+  }
 }
