@@ -51,7 +51,9 @@ select:focus-visible {
   flex-direction: column;
   gap: 12px;
   background: rgba(255, 254, 250, 0.7);
-  transition: width 0.22s cubic-bezier(0.4, 0, 0.2, 1), padding 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+  transition:
+    width 0.22s cubic-bezier(0.4, 0, 0.2, 1),
+    padding 0.22s cubic-bezier(0.4, 0, 0.2, 1);
   overflow-x: hidden;
 }
 .sidebar-top {
@@ -73,7 +75,9 @@ select:focus-visible {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.12s ease, color 0.12s ease;
+  transition:
+    background 0.12s ease,
+    color 0.12s ease;
 }
 .sidebar-toggle-btn:hover {
   background: #eaf1ed;
@@ -230,7 +234,9 @@ textarea:focus {
   font-weight: 600;
   line-height: 1.3;
   cursor: pointer;
-  transition: background 0.12s ease, transform 0.08s ease;
+  transition:
+    background 0.12s ease,
+    transform 0.08s ease;
 }
 .button:hover {
   background: #0f675f;
@@ -311,7 +317,9 @@ textarea:focus {
 .board-title-button .title-edit-hint {
   opacity: 0;
   color: var(--muted);
-  transition: opacity 0.15s ease, color 0.15s ease;
+  transition:
+    opacity 0.15s ease,
+    color 0.15s ease;
   display: inline-flex;
   align-items: center;
 }
@@ -468,9 +476,13 @@ textarea:focus {
   gap: 10px;
   flex-shrink: 0;
   height: auto;
-  box-shadow: 0 1px 3px rgba(20, 30, 25, 0.04), 0 1px 2px rgba(20, 30, 25, 0.02);
+  box-shadow:
+    0 1px 3px rgba(20, 30, 25, 0.04),
+    0 1px 2px rgba(20, 30, 25, 0.02);
   position: relative;
-  transition: box-shadow 0.15s ease, border-color 0.15s ease;
+  transition:
+    box-shadow 0.15s ease,
+    border-color 0.15s ease;
 }
 .task-card:hover,
 .task-card:focus-within {
@@ -488,7 +500,9 @@ textarea:focus {
 }
 .drag-preview {
   width: 290px;
-  box-shadow: 0 16px 32px rgba(20, 30, 25, 0.16), 0 4px 8px rgba(20, 30, 25, 0.06);
+  box-shadow:
+    0 16px 32px rgba(20, 30, 25, 0.16),
+    0 4px 8px rgba(20, 30, 25, 0.06);
   cursor: grabbing;
   pointer-events: none;
   opacity: 0.95;
@@ -504,14 +518,21 @@ textarea:focus {
   justify-content: center;
   border-radius: 4px;
   align-self: flex-start;
-  transition: background 0.12s ease, color 0.12s ease;
+  transition:
+    background 0.12s ease,
+    color 0.12s ease;
 }
 .drag-handle:hover {
   background: #eaf1ed;
   color: var(--ink);
 }
-.task-copy { flex: 1; min-width: 0; }
-.drag-handle:active { cursor: grabbing; }
+.task-copy {
+  flex: 1;
+  min-width: 0;
+}
+.drag-handle:active {
+  cursor: grabbing;
+}
 .task-card h4 {
   margin: 0;
   font-size: 14px;
@@ -544,10 +565,12 @@ textarea:focus {
   align-items: center;
   justify-content: center;
   border-radius: 4px;
-  transition: background 0.12s ease, color 0.12s ease;
+  transition:
+    background 0.12s ease,
+    color 0.12s ease;
 }
 .task-menu-trigger:hover,
-.task-menu-trigger[aria-expanded="true"] {
+.task-menu-trigger[aria-expanded='true'] {
   background: #eaf1ed;
   color: var(--ink);
 }
@@ -561,7 +584,9 @@ textarea:focus {
   border: 1px solid var(--line);
   border-radius: 7px;
   background: var(--surface);
-  box-shadow: 0 10px 25px -5px rgba(20, 30, 25, 0.15), 0 0 0 1px rgba(20, 30, 25, 0.05);
+  box-shadow:
+    0 10px 25px -5px rgba(20, 30, 25, 0.15),
+    0 0 0 1px rgba(20, 30, 25, 0.05);
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -579,7 +604,9 @@ textarea:focus {
   text-align: left;
   font-size: 12px;
   font-weight: 500;
-  transition: background 0.12s ease, color 0.12s ease;
+  transition:
+    background 0.12s ease,
+    color 0.12s ease;
 }
 .task-menu button:hover,
 .task-menu button:focus-visible {
@@ -614,7 +641,10 @@ textarea:focus {
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
-  transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+  transition:
+    background 0.12s ease,
+    border-color 0.12s ease,
+    color 0.12s ease;
 }
 .add-task:hover {
   background: rgba(22, 124, 114, 0.05);
@@ -705,18 +735,67 @@ textarea:focus {
   box-shadow: 0 10px 24px rgba(25, 40, 35, 0.12);
   font-size: 12px;
 }
-.status-success { color: var(--teal); }
-.status-error, .error { color: #b64d3d; }
-.text-button { border: 0; background: transparent; color: var(--muted); text-decoration: underline; padding: 4px 0; }
-.danger { background: #b64d3d; }
-.secondary-button { border: 1px solid var(--line); border-radius: 6px; padding: 10px 14px; background: var(--surface); color: var(--ink); }
-.confirm-actions { display: flex; justify-content: flex-end; gap: 8px; }
-.icon-button { border: 0; background: transparent; color: var(--muted); font-size: 22px; }
-.modal-heading p { color: var(--muted); font-size: 12px; margin: 5px 0 0; }
-.password-field { display: flex; position: relative; }
-.password-field input { width: 100%; padding-right: 58px; }
-.password-toggle { position: absolute; right: 8px; top: 7px; border: 0; background: transparent; color: var(--teal); font-size: 12px; padding: 4px; }
-.mobile-menu { display: none; }
+.status-success {
+  color: var(--teal);
+}
+.status-error,
+.error {
+  color: #b64d3d;
+}
+.text-button {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  text-decoration: underline;
+  padding: 4px 0;
+}
+.danger {
+  background: #b64d3d;
+}
+.secondary-button {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 10px 14px;
+  background: var(--surface);
+  color: var(--ink);
+}
+.confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.icon-button {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 22px;
+}
+.modal-heading p {
+  color: var(--muted);
+  font-size: 12px;
+  margin: 5px 0 0;
+}
+.password-field {
+  display: flex;
+  position: relative;
+}
+.password-field input {
+  width: 100%;
+  padding-right: 58px;
+}
+.password-toggle {
+  position: absolute;
+  right: 8px;
+  top: 7px;
+  border: 0;
+  background: transparent;
+  color: var(--teal);
+  font-size: 12px;
+  padding: 4px;
+}
+.mobile-menu {
+  display: none;
+}
 .move-status {
   color: var(--teal);
   font-size: 12px;
@@ -784,7 +863,9 @@ textarea:focus {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  transition: color 0.12s ease, background 0.12s ease;
+  transition:
+    color 0.12s ease,
+    background 0.12s ease;
 }
 .column-delete-btn:hover {
   color: #e11d48;
@@ -860,7 +941,9 @@ textarea:focus {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  transition: color 0.12s ease, background 0.12s ease;
+  transition:
+    color 0.12s ease,
+    background 0.12s ease;
 }
 .member-remove-btn:hover {
   color: #e11d48;
@@ -934,7 +1017,18 @@ textarea:focus {
   border-bottom: 2px solid var(--teal);
 }
 @media (max-width: 800px) {
-  .mobile-menu { display: block; position: fixed; top: 14px; right: 16px; z-index: 4; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--ink); padding: 8px 11px; }
+  .mobile-menu {
+    display: block;
+    position: fixed;
+    top: 14px;
+    right: 16px;
+    z-index: 4;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: var(--surface);
+    color: var(--ink);
+    padding: 8px 11px;
+  }
   .app-shell {
     display: block;
   }
@@ -945,18 +1039,40 @@ textarea:focus {
     border-bottom: 1px solid var(--line);
     padding: 18px;
   }
-  .sidebar.mobile-open { display: flex; position: fixed; inset: 0; z-index: 3; min-height: 100vh; width: 100% !important; padding: 24px 18px !important; }
+  .sidebar.mobile-open {
+    display: flex;
+    position: fixed;
+    inset: 0;
+    z-index: 3;
+    min-height: 100vh;
+    width: 100% !important;
+    padding: 24px 18px !important;
+  }
   .sidebar.mobile-open .profile,
   .sidebar.mobile-open .sidebar-label,
   .sidebar.mobile-open .new-board,
-  .sidebar.mobile-open .logout { display: flex; }
+  .sidebar.mobile-open .logout {
+    display: flex;
+  }
   .sidebar.mobile-open .profile > div,
   .sidebar.mobile-open .sidebar-label,
-  .sidebar.mobile-open .board-link b { display: block !important; }
-  .sidebar.mobile-open .sidebar-top { flex-direction: row !important; }
-  .sidebar.mobile-open .board-link { justify-content: flex-start !important; }
-  .sidebar.mobile-open .sidebar-label { display: block; }
-  .sidebar.mobile-open .logout { display: block; text-align: left !important; font-size: 12px !important; }
+  .sidebar.mobile-open .board-link b {
+    display: block !important;
+  }
+  .sidebar.mobile-open .sidebar-top {
+    flex-direction: row !important;
+  }
+  .sidebar.mobile-open .board-link {
+    justify-content: flex-start !important;
+  }
+  .sidebar.mobile-open .sidebar-label {
+    display: block;
+  }
+  .sidebar.mobile-open .logout {
+    display: block;
+    text-align: left !important;
+    font-size: 12px !important;
+  }
   .brand {
     margin-bottom: 14px;
   }

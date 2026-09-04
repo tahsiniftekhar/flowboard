@@ -1,9 +1,8 @@
 'use client';
 
-import { useEffect, useState, useSyncExternalStore } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 
-import type { Board, User } from '@/types';
 import { api } from '@/lib/api';
 import {
   SELECTED_BOARD_KEY,
@@ -12,6 +11,7 @@ import {
   TOKEN_KEY,
   USER_KEY,
 } from '@/lib/constants';
+import type { Board, User } from '@/types';
 
 import { AuthForm } from '@/components/auth/auth-form';
 import { BoardView } from '@/components/board/board-view';
@@ -24,7 +24,7 @@ function useIsHydrated() {
   return useSyncExternalStore(
     emptySubscribe,
     () => true,
-    () => false,
+    () => false
   );
 }
 
@@ -188,7 +188,11 @@ function FlowboardApp() {
         ) : activeBoardQuery.isError ? (
           <div className="state-panel error">
             <p>We couldn&apos;t load this board.</p>
-            <button type="button" className="text-button" onClick={() => void activeBoardQuery.refetch()}>
+            <button
+              type="button"
+              className="text-button"
+              onClick={() => void activeBoardQuery.refetch()}
+            >
               Try again
             </button>
           </div>
@@ -197,7 +201,9 @@ function FlowboardApp() {
             board={activeBoardQuery.data}
             token={token}
             user={user}
-            refresh={() => void queryClient.invalidateQueries({ queryKey: ['board', selectedBoardId] })}
+            refresh={() =>
+              void queryClient.invalidateQueries({ queryKey: ['board', selectedBoardId] })
+            }
           />
         ) : null}
       </div>
