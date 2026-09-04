@@ -1,7 +1,18 @@
 'use client';
 
+import {
+  closestCorners,
+  DndContext,
+  PointerSensor,
+  useDroppable,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState, type FormEvent } from 'react';
+import { useRef, useState, type FormEvent } from 'react';
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 type User = { id: string; email: string; name: string };
@@ -133,11 +144,21 @@ function TaskCard({
   setEdit: () => void;
   remove: () => void;
 }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: task.id,
+  });
+
   return (
     <article
+      ref={setNodeRef}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.45 : 1,
+      }}
       className="task-card"
-      draggable
-      onDragStart={(event) => event.dataTransfer.setData('taskId', task.id)}
+      {...attributes}
+      {...listeners}
     >
       <div>
         <h4>{task.title}</h4>
@@ -148,6 +169,65 @@ function TaskCard({
         <button onClick={remove}>×</button>
       </div>
     </article>
+  );
+}
+
+function BoardColumn({
+  column,
+  token,
+  setNewTask,
+  setEdit,
+  refresh,
+}: {
+  column: Column;
+  token: string;
+  setNewTask: (value: { columnId: string; title: string }) => void;
+  setEdit: (task: Task) => void;
+  refresh: () => void;
+}) {
+  const { setNodeRef, isOver } = useDroppable({ id: column.id });
+
+  return (
+    <div ref={setNodeRef} className={`column ${isOver ? 'column-over' : ''}`}>
+      <div className="column-heading">
+        <div>
+          <span className="column-index">0{column.position + 1}</span>
+          <h3>{column.name}</h3>
+        </div>
+        <button
+          onClick={async () => {
+            if (confirm(`Delete ${column.name} and its tasks?`)) {
+              await api(`/columns/${column.id}`, token, { method: 'DELETE' });
+              refresh();
+            }
+          }}
+        >
+          Delete
+        </button>
+      </div>
+      <SortableContext
+        items={column.tasks.map((task) => task.id)}
+        strategy={verticalListSortingStrategy}
+      >
+        <div className="task-list">
+          {column.tasks.map((task) => (
+            <TaskCard
+              key={task.id}
+              task={task}
+              setEdit={() => setEdit(task)}
+              remove={async () => {
+                await api(`/tasks/${task.id}`, token, { method: 'DELETE' });
+                refresh();
+              }}
+            />
+          ))}
+          {column.tasks.length === 0 && <p className="column-empty">Drop work here</p>}
+        </div>
+      </SortableContext>
+      <button className="add-task" onClick={() => setNewTask({ columnId: column.id, title: '' })}>
+        + Add task
+      </button>
+    </div>
   );
 }
 
@@ -165,6 +245,9 @@ function BoardView({
   const [edit, setEdit] = useState<Task | null>(null);
   const [email, setEmail] = useState('');
   const [notice, setNotice] = useState('');
+  const [movingTaskId, setMovingTaskId] = useState<string | null>(null);
+  const movingRef = useRef(false);
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
   const columns = board.columns ?? [];
   async function addColumn(e: FormEvent) {
     e.preventDefault();
@@ -210,14 +293,35 @@ function BoardView({
       setNotice(err instanceof Error ? err.message : 'Unable to share');
     }
   }
-  async function move(taskId: string, destinationColumnId: string) {
-    const destination = columns.find((item) => item.id === destinationColumnId);
+  async function move(event: DragEndEvent) {
+    if (movingRef.current || !event.over) return;
+    const taskId = String(event.active.id);
+    const draggedTask = columns.flatMap((item) => item.tasks).find((task) => task.id === taskId);
+    if (!draggedTask) return;
+    const destination =
+      columns.find((item) => item.id === event.over?.id) ??
+      columns.find((item) => item.tasks.some((task) => task.id === event.over?.id));
     if (!destination) return;
-    await api(`/tasks/${taskId}/move`, token, {
-      method: 'PATCH',
-      body: JSON.stringify({ destinationColumnId, destinationIndex: destination.tasks.length }),
-    });
-    refresh();
+    const overTaskIndex = destination.tasks.findIndex((task) => task.id === event.over?.id);
+    const destinationIndex = overTaskIndex === -1 ? destination.tasks.length : overTaskIndex;
+    if (destination.id === draggedTask.columnId && destinationIndex === draggedTask.position)
+      return;
+    movingRef.current = true;
+    setMovingTaskId(taskId);
+    setNotice('Saving move...');
+    try {
+      await api(`/tasks/${taskId}/move`, token, {
+        method: 'PATCH',
+        body: JSON.stringify({ destinationColumnId: destination.id, destinationIndex }),
+      });
+      setNotice('Move saved');
+    } catch (err) {
+      setNotice(err instanceof Error ? err.message : 'Move failed; restored server state');
+    } finally {
+      movingRef.current = false;
+      setMovingTaskId(null);
+      refresh();
+    }
   }
   return (
     <section className="board-space">
@@ -253,59 +357,26 @@ function BoardView({
           <span>Add your first workflow column above.</span>
         </div>
       ) : (
-        <div className="kanban-grid">
-          {columns.map((item) => (
-            <div
-              className="column"
-              key={item.id}
-              id={item.id}
-              onDragOver={(e) => e.preventDefault()}
-              onDrop={(e) => {
-                e.preventDefault();
-                const taskId = e.dataTransfer.getData('taskId');
-                if (taskId) void move(taskId, item.id);
-              }}
-            >
-              <div className="column-heading">
-                <div>
-                  <span className="column-index">0{item.position + 1}</span>
-                  <h3>{item.name}</h3>
-                </div>
-                <button
-                  onClick={async () => {
-                    if (confirm(`Delete ${item.name} and its tasks?`)) {
-                      await api(`/columns/${item.id}`, token, { method: 'DELETE' });
-                      refresh();
-                    }
-                  }}
-                >
-                  Delete
-                </button>
-              </div>
-              <div className="task-list">
-                {item.tasks.map((task) => (
-                  <TaskCard
-                    key={task.id}
-                    task={task}
-                    setEdit={() => setEdit(task)}
-                    remove={async () => {
-                      await api(`/tasks/${task.id}`, token, { method: 'DELETE' });
-                      refresh();
-                    }}
-                  />
-                ))}
-                {item.tasks.length === 0 && <p className="column-empty">Drop work here</p>}
-              </div>
-              <button
-                className="add-task"
-                onClick={() => setNewTask({ columnId: item.id, title: '' })}
-              >
-                + Add task
-              </button>
-            </div>
-          ))}
-        </div>
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCorners}
+          onDragEnd={(event) => void move(event)}
+        >
+          <div className="kanban-grid">
+            {columns.map((item) => (
+              <BoardColumn
+                key={item.id}
+                column={item}
+                token={token}
+                setNewTask={setNewTask}
+                setEdit={setEdit}
+                refresh={refresh}
+              />
+            ))}
+          </div>
+        </DndContext>
       )}
+      {movingTaskId && <p className="move-status">Saving task movement...</p>}
       {newTask && (
         <Modal title="New task" close={() => setNewTask(null)}>
           <form onSubmit={addTask}>

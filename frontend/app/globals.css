@@ -230,6 +230,13 @@ textarea:focus {
   padding: 14px;
   min-height: 270px;
   border-radius: 8px;
+  transition:
+    background 0.15s ease,
+    box-shadow 0.15s ease;
+}
+.column-over {
+  background: #dfe9e2;
+  box-shadow: inset 0 0 0 1px #b8d2c5;
 }
 .column-heading {
   display: flex;
@@ -312,6 +319,11 @@ textarea:focus {
   padding: 50px;
   text-align: center;
   color: var(--muted);
+}
+.move-status {
+  color: var(--teal);
+  font-size: 12px;
+  margin-top: 18px;
 }
 .empty-state strong,
 .empty-state span {
