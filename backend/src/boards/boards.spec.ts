@@ -229,4 +229,163 @@ describe('Boards', () => {
 
     expect(accessResponse.body.id).toBe(boardId);
   });
+
+  it('allows only the owner to share and remove members', async () => {
+    const ownerEmail = `owner-members-${Date.now()}@example.com`;
+    const memberEmail = `member-members-${Date.now()}@example.com`;
+    const outsiderEmail = `outsider-members-${Date.now()}@example.com`;
+
+    const ownerResponse = await request(app.getHttpServer())
+      .post('/auth/register')
+      .send({
+        name: 'Owner Members',
+        email: ownerEmail,
+        password: 'StrongPass123!',
+      })
+      .expect(201);
+    const memberResponse = await request(app.getHttpServer())
+      .post('/auth/register')
+      .send({
+        name: 'Member Members',
+        email: memberEmail,
+        password: 'StrongPass123!',
+      })
+      .expect(201);
+    const outsiderResponse = await request(app.getHttpServer())
+      .post('/auth/register')
+      .send({
+        name: 'Outsider Members',
+        email: outsiderEmail,
+        password: 'StrongPass123!',
+      })
+      .expect(201);
+
+    const ownerToken = ownerResponse.body.accessToken;
+    const memberToken = memberResponse.body.accessToken;
+    const outsiderToken = outsiderResponse.body.accessToken;
+    const memberId = memberResponse.body.user.id;
+    const ownerId = ownerResponse.body.user.id;
+
+    const boardResponse = await request(app.getHttpServer())
+      .post('/boards')
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send({ name: 'Membership Board' })
+      .expect(201);
+    const boardId = boardResponse.body.id;
+
+    const shareResponse = await request(app.getHttpServer())
+      .post(`/boards/${boardId}/members`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send({ email: memberEmail })
+      .expect(201);
+
+    expect(shareResponse.body.role).toBe('MEMBER');
+    expect(shareResponse.body.user.email).toBe(memberEmail);
+
+    await request(app.getHttpServer())
+      .post(`/boards/${boardId}/members`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send({ email: memberEmail })
+      .expect(409);
+
+    await request(app.getHttpServer())
+      .post(`/boards/${boardId}/members`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send({ email: `missing-${Date.now()}@example.com` })
+      .expect(404);
+
+    const membersResponse = await request(app.getHttpServer())
+      .get(`/boards/${boardId}/members`)
+      .set('Authorization', `Bearer ${memberToken}`)
+      .expect(200);
+    expect(membersResponse.body).toHaveLength(2);
+    expect(
+      membersResponse.body.every(
+        (entry: { user: { passwordHash?: string } }) =>
+          entry.user.passwordHash === undefined,
+      ),
+    ).toBe(true);
+
+    await request(app.getHttpServer())
+      .post(`/boards/${boardId}/members`)
+      .set('Authorization', `Bearer ${memberToken}`)
+      .send({ email: outsiderEmail })
+      .expect(403);
+
+    await request(app.getHttpServer())
+      .delete(`/boards/${boardId}/members/${ownerId}`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .expect(403);
+
+    await request(app.getHttpServer())
+      .delete(`/boards/${boardId}/members/${memberId}`)
+      .set('Authorization', `Bearer ${outsiderToken}`)
+      .expect(403);
+
+    await request(app.getHttpServer())
+      .delete(`/boards/${boardId}/members/${memberId}`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .expect(200);
+
+    await request(app.getHttpServer())
+      .get(`/boards/${boardId}`)
+      .set('Authorization', `Bearer ${memberToken}`)
+      .expect(403);
+  });
+
+  it('prevents membership operations across boards', async () => {
+    const firstOwnerEmail = `owner-first-${Date.now()}@example.com`;
+    const secondOwnerEmail = `owner-second-${Date.now()}@example.com`;
+    const memberEmail = `member-cross-${Date.now()}@example.com`;
+
+    const firstOwnerResponse = await request(app.getHttpServer())
+      .post('/auth/register')
+      .send({
+        name: 'First Owner',
+        email: firstOwnerEmail,
+        password: 'StrongPass123!',
+      })
+      .expect(201);
+    const secondOwnerResponse = await request(app.getHttpServer())
+      .post('/auth/register')
+      .send({
+        name: 'Second Owner',
+        email: secondOwnerEmail,
+        password: 'StrongPass123!',
+      })
+      .expect(201);
+    await request(app.getHttpServer())
+      .post('/auth/register')
+      .send({
+        name: 'Cross Member',
+        email: memberEmail,
+        password: 'StrongPass123!',
+      })
+      .expect(201);
+
+    const firstOwnerToken = firstOwnerResponse.body.accessToken;
+    const secondOwnerToken = secondOwnerResponse.body.accessToken;
+
+    const firstBoardResponse = await request(app.getHttpServer())
+      .post('/boards')
+      .set('Authorization', `Bearer ${firstOwnerToken}`)
+      .send({ name: 'First Board' })
+      .expect(201);
+    const secondBoardResponse = await request(app.getHttpServer())
+      .post('/boards')
+      .set('Authorization', `Bearer ${secondOwnerToken}`)
+      .send({ name: 'Second Board' })
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .post(`/boards/${secondBoardResponse.body.id}/members`)
+      .set('Authorization', `Bearer ${firstOwnerToken}`)
+      .send({ email: memberEmail })
+      .expect(403);
+
+    await request(app.getHttpServer())
+      .get(`/boards/${firstBoardResponse.body.id}/members`)
+      .set('Authorization', `Bearer ${secondOwnerToken}`)
+      .expect(403);
+  });
 });

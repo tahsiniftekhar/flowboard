@@ -8,7 +8,7 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { IsNotEmpty, MaxLength } from 'class-validator';
+import { IsEmail, IsNotEmpty, MaxLength } from 'class-validator';
 import { AuthUser } from '../auth/auth.service';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -24,6 +24,11 @@ class UpdateBoardDto {
   @IsNotEmpty()
   @MaxLength(120)
   name?: string;
+}
+
+class AddMemberDto {
+  @IsEmail()
+  email: string;
 }
 
 @Controller('boards')
@@ -61,5 +66,31 @@ export class BoardsController {
   @Delete(':id')
   async deleteBoard(@CurrentUser() user: AuthUser, @Param('id') id: string) {
     return this.boardsService.deleteBoard(id, user.id);
+  }
+
+  @Post(':boardId/members')
+  async addMember(
+    @CurrentUser() user: AuthUser,
+    @Param('boardId') boardId: string,
+    @Body() dto: AddMemberDto,
+  ) {
+    return this.boardsService.addMember(boardId, user.id, dto.email);
+  }
+
+  @Get(':boardId/members')
+  async listMembers(
+    @CurrentUser() user: AuthUser,
+    @Param('boardId') boardId: string,
+  ) {
+    return this.boardsService.listMembers(boardId, user.id);
+  }
+
+  @Delete(':boardId/members/:userId')
+  async removeMember(
+    @CurrentUser() user: AuthUser,
+    @Param('boardId') boardId: string,
+    @Param('userId') userId: string,
+  ) {
+    return this.boardsService.removeMember(boardId, user.id, userId);
   }
 }

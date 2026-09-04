@@ -1,4 +1,5 @@
 import {
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -132,5 +133,115 @@ export class BoardsService {
       userId,
       role: member.role === BoardRole.OWNER ? 'OWNER' : 'MEMBER',
     };
+  }
+
+  private async requireBoardOwner(boardId: string, userId: string) {
+    const board = await this.prisma.board.findUnique({
+      where: { id: boardId },
+    });
+
+    if (!board) {
+      throw new NotFoundException('Board not found');
+    }
+
+    if (board.ownerId !== userId) {
+      throw new ForbiddenException(
+        'Only the board owner can manage membership',
+      );
+    }
+
+    return board;
+  }
+
+  async listMembers(boardId: string, userId: string) {
+    await this.requireBoardAccess(boardId, userId);
+
+    return this.prisma.boardMember.findMany({
+      where: { boardId },
+      select: {
+        id: true,
+        boardId: true,
+        userId: true,
+        role: true,
+        createdAt: true,
+        user: {
+          select: {
+            id: true,
+            email: true,
+            name: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+  }
+
+  async addMember(boardId: string, ownerId: string, email: string) {
+    await this.requireBoardOwner(boardId, ownerId);
+
+    const user = await this.prisma.user.findUnique({
+      where: { email },
+      select: { id: true, email: true, name: true },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const existingMembership = await this.prisma.boardMember.findUnique({
+      where: {
+        boardId_userId: { boardId, userId: user.id },
+      },
+    });
+
+    if (existingMembership) {
+      throw new ConflictException('User is already a board member');
+    }
+
+    return this.prisma.boardMember.create({
+      data: {
+        boardId,
+        userId: user.id,
+        role: BoardRole.MEMBER,
+      },
+      select: {
+        id: true,
+        boardId: true,
+        userId: true,
+        role: true,
+        createdAt: true,
+        user: {
+          select: {
+            id: true,
+            email: true,
+            name: true,
+          },
+        },
+      },
+    });
+  }
+
+  async removeMember(boardId: string, ownerId: string, userId: string) {
+    const board = await this.requireBoardOwner(boardId, ownerId);
+
+    if (board.ownerId === userId) {
+      throw new ForbiddenException('The board owner cannot be removed');
+    }
+
+    const membership = await this.prisma.boardMember.findUnique({
+      where: {
+        boardId_userId: { boardId, userId },
+      },
+    });
+
+    if (!membership) {
+      throw new NotFoundException('Board member not found');
+    }
+
+    await this.prisma.boardMember.delete({
+      where: { boardId_userId: { boardId, userId } },
+    });
+
+    return { success: true };
   }
 }
