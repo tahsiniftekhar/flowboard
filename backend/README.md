@@ -25,6 +25,12 @@
 
 [Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
 
+## Column deletion policy
+
+Deleting a column permanently deletes all tasks in that column. The operation
+uses the database cascade on `Task.columnId` and renumbers later columns so
+their positions remain contiguous.
+
 ## Project setup
 
 ```bash
