@@ -26,12 +26,13 @@ cp .env.example backend/.env
 
 The backend reads these variables from `backend/.env`:
 
-| Variable       | Purpose                           | Local value                                                               |
-| -------------- | --------------------------------- | ------------------------------------------------------------------------- |
-| `DATABASE_URL` | PostgreSQL connection string      | `postgresql://flowboard:flowboard@localhost:5432/flowboard?schema=public` |
-| `JWT_SECRET`   | Secret used to sign access tokens | Use a long random value                                                   |
-| `PORT`         | Backend HTTP port                 | `4000`                                                                    |
-| `FRONTEND_URL` | Allowed frontend origin           | `http://localhost:3000`                                                   |
+| Variable       | Purpose                                                     | Local value                                                               |
+| -------------- | ----------------------------------------------------------- | ------------------------------------------------------------------------- |
+| `DATABASE_URL` | PostgreSQL connection string                                | `postgresql://flowboard:flowboard@localhost:5432/flowboard?schema=public` |
+| `DIRECT_URL`   | Direct PostgreSQL URL for migrations (recommended for Neon) | Empty locally                                                             |
+| `JWT_SECRET`   | Secret used to sign access tokens                           | Use a long random value                                                   |
+| `PORT`         | Backend HTTP port                                           | `4000`                                                                    |
+| `FRONTEND_URL` | Allowed frontend origin                                     | `http://localhost:3000`                                                   |
 
 The frontend reads `NEXT_PUBLIC_API_URL`. It defaults to `http://localhost:4000`, so no separate frontend environment file is required for the standard local setup.
 
@@ -63,6 +64,10 @@ Apply the committed migrations:
 cd backend
 pnpm exec prisma migrate deploy
 ```
+
+For Neon, set `DATABASE_URL` to the pooled connection string and `DIRECT_URL` to
+the direct connection string from the Neon dashboard. The app uses
+`DATABASE_URL`; Prisma migrations use `DIRECT_URL` when it is set.
 
 For local schema development, use `pnpm exec prisma migrate dev` instead. Do not use `migrate dev` against a shared or production database.
 
