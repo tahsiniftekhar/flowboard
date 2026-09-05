@@ -1,6 +1,7 @@
 'use client';
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import Image from 'next/image';
 import { useEffect, useState, useSyncExternalStore } from 'react';
 
 import { api } from '@/lib/api';
@@ -218,7 +219,7 @@ export default function Home() {
     return (
       <main className="app-shell-loading">
         <div className="brand splash-brand">
-          <span>FB</span>
+          <Image src="/fb-icon.png" alt="Flowboard" width={30} height={30} />
           <strong>Flowboard</strong>
         </div>
       </main>

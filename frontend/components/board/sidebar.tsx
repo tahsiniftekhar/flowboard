@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, type FormEvent } from 'react';
+import Image from 'next/image';
 import type { Board, User } from '@/types';
 import { Button } from '@/components/ui/button';
 import { IconPlus, IconSidebar } from '@/components/ui/icons';
@@ -57,7 +58,7 @@ export function Sidebar({
     <aside className={`sidebar ${isCollapsed ? 'sidebar-collapsed' : ''} ${isMobileOpen ? 'mobile-open' : ''}`}>
       <div className="sidebar-top">
         <div className="brand" title="Flowboard">
-          <span>FB</span>
+          <Image src="/fb-icon.png" alt="Flowboard" width={30} height={30} />
           {!isCollapsed && <strong>Flowboard</strong>}
         </div>
         <button
