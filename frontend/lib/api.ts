@@ -3,7 +3,7 @@ import { API_URL, SESSION_EXPIRED_EVENT } from './constants';
 export class ApiError extends Error {
   constructor(
     public status: number,
-    message: string,
+    message: string
   ) {
     super(message);
     this.name = 'ApiError';
@@ -19,7 +19,7 @@ export async function api<T>(path: string, token?: string | null, init?: Request
     headers.set('authorization', `Bearer ${token}`);
   }
 
-  const response = await fetch(`${API_URL}${path}`, {
+  const response = await fetch(`${API_URL}/api${path}`, {
     ...init,
     headers,
   });

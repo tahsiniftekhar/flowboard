@@ -20,6 +20,7 @@ describe('Auth', () => {
       }),
     );
     await app.init();
+    app.setGlobalPrefix('api');
   });
 
   afterAll(async () => {

@@ -22,6 +22,7 @@ describe('Tasks', () => {
       }),
     );
     prisma = moduleRef.get(PrismaService);
+    app.setGlobalPrefix('api');
     await app.init();
   });
 

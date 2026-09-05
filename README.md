@@ -105,7 +105,7 @@ cd backend
 pnpm run start:dev
 ```
 
-The API runs at [http://localhost:4000](http://localhost:4000).
+The API runs at [http://localhost:4000/api](http://localhost:4000/api).
 
 Terminal 2, frontend:
 
