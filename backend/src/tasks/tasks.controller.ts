@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Param,
+  ParseUUIDPipe,
   Patch,
   Post,
   UseGuards,
@@ -60,7 +61,7 @@ export class TasksController {
   @Post('columns/:columnId/tasks')
   async createTask(
     @CurrentUser() user: AuthUser,
-    @Param('columnId') columnId: string,
+    @Param('columnId', new ParseUUIDPipe()) columnId: string,
     @Body() dto: CreateTaskDto,
   ) {
     return this.tasksService.createTask(
@@ -74,7 +75,7 @@ export class TasksController {
   @Patch('tasks/:id')
   async updateTask(
     @CurrentUser() user: AuthUser,
-    @Param('id') taskId: string,
+    @Param('id', new ParseUUIDPipe()) taskId: string,
     @Body() dto: UpdateTaskDto,
   ) {
     return this.tasksService.updateTask(
@@ -86,14 +87,17 @@ export class TasksController {
   }
 
   @Delete('tasks/:id')
-  async deleteTask(@CurrentUser() user: AuthUser, @Param('id') taskId: string) {
+  async deleteTask(
+    @CurrentUser() user: AuthUser,
+    @Param('id', new ParseUUIDPipe()) taskId: string,
+  ) {
     return this.tasksService.deleteTask(taskId, user.id);
   }
 
   @Patch('tasks/:taskId/move')
   async moveTask(
     @CurrentUser() user: AuthUser,
-    @Param('taskId') taskId: string,
+    @Param('taskId', new ParseUUIDPipe()) taskId: string,
     @Body() dto: MoveTaskDto,
   ) {
     return this.tasksService.moveTask(

@@ -1,7 +1,7 @@
 import { PrismaPg } from '@prisma/adapter-pg';
 import * as bcrypt from 'bcrypt';
 import 'dotenv/config';
-import { BoardRole, PrismaClient } from '../src/generated/prisma/client.ts';
+import { BoardRole, PrismaClient } from '../src/generated/prisma/client.js';
 
 const databaseUrl =
   process.env.DATABASE_URL ??

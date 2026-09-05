@@ -24,6 +24,7 @@ prisma/generated/
 
 # IDE
 AGENTS.md
+CLAUDE.md
 .idea/
 .vscode/
 .devin/

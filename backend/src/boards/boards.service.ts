@@ -18,26 +18,14 @@ export class BoardsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async createBoard(userId: string, name: string) {
-    return this.prisma.$transaction(async (transaction) => {
-      const board = await transaction.board.create({
-        data: {
-          name,
-          ownerId: userId,
-          members: {
-            create: [{ userId, role: BoardRole.OWNER }],
-          },
+    return this.prisma.board.create({
+      data: {
+        name,
+        ownerId: userId,
+        members: {
+          create: [{ userId, role: BoardRole.OWNER }],
         },
-      });
-
-      await transaction.column.createMany({
-        data: [
-          { boardId: board.id, name: 'To Do', position: 0 },
-          { boardId: board.id, name: 'In Progress', position: 1 },
-          { boardId: board.id, name: 'Done', position: 2 },
-        ],
-      });
-
-      return board;
+      },
     });
   }
 

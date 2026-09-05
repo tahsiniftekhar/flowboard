@@ -1,8 +1,8 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
-import { AppModule } from '../app.module';
-import { PrismaService } from '../prisma/prisma.service';
+import { AppModule } from '../app.module.js';
+import { PrismaService } from '../prisma/prisma.service.js';
 
 describe('Boards', () => {
   let app: INestApplication;
@@ -22,7 +22,6 @@ describe('Boards', () => {
       }),
     );
     prisma = moduleRef.get(PrismaService);
-    app.setGlobalPrefix('api');
     await app.init();
   });
 

@@ -4,7 +4,6 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { BoardsService } from '../boards/boards.service.js';
-import { Prisma } from '../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
 @Injectable()
@@ -165,105 +164,92 @@ export class TasksService {
 
       const sourceColumnId = task.columnId;
       const sameColumn = sourceColumnId === destinationColumnId;
-      const destinationCount = await transaction.task.count({
-        where: { columnId: destinationColumnId },
-      });
-      const availableDestinationLength = sameColumn
-        ? Math.max(destinationCount - 1, 0)
-        : destinationCount;
-      const targetIndex = Math.min(
-        Math.max(destinationIndex, 0),
-        availableDestinationLength,
-      );
-
-      if (sameColumn && targetIndex === task.position) {
-        return transaction.task.findUniqueOrThrow({ where: { id: taskId } });
-      }
-
-      const temporaryPosition = 2_147_483_647;
-      await transaction.task.update({
-        where: { id: taskId },
-        data: { position: temporaryPosition },
-      });
 
       if (sameColumn) {
-        if (targetIndex < task.position) {
-          await transaction.task.updateMany({
-            where: {
-              columnId: sourceColumnId,
-              position: { gte: targetIndex, lt: task.position },
-            },
-            data: { position: { increment: 1 } },
-          });
-        } else {
-          await transaction.task.updateMany({
-            where: {
-              columnId: sourceColumnId,
-              position: { gt: task.position, lte: targetIndex },
-            },
-            data: { position: { decrement: 1 } },
-          });
-        }
+        const currentTasks = await transaction.task.findMany({
+          where: { columnId: sourceColumnId },
+          orderBy: { position: 'asc' },
+          select: { id: true },
+        });
 
-        await transaction.task.update({
-          where: { id: taskId },
-          data: { position: targetIndex },
+        const otherTasks = currentTasks.filter((item) => item.id !== taskId);
+        const targetIndex = Math.min(
+          Math.max(destinationIndex, 0),
+          otherTasks.length,
+        );
+
+        otherTasks.splice(targetIndex, 0, { id: taskId });
+
+        const tempOffset = currentTasks.length + 100000;
+        await transaction.task.updateMany({
+          where: { columnId: sourceColumnId },
+          data: { position: { increment: tempOffset } },
         });
-        await this.normalizeTaskPositions(transaction, sourceColumnId);
+
+        await Promise.all(
+          otherTasks.map((t, index) =>
+            transaction.task.update({
+              where: { id: t.id },
+              data: { position: index },
+            }),
+          ),
+        );
       } else {
-        await transaction.task.updateMany({
-          where: {
-            columnId: sourceColumnId,
-            position: { gt: task.position },
-          },
-          data: { position: { decrement: 1 } },
-        });
-        await transaction.task.updateMany({
-          where: {
-            columnId: destinationColumnId,
-            position: { gte: targetIndex },
-          },
-          data: { position: { increment: 1 } },
-        });
-        await transaction.task.update({
-          where: { id: taskId },
-          data: {
-            columnId: destinationColumnId,
-            position: targetIndex,
-          },
-        });
-        await this.normalizeTaskPositions(transaction, sourceColumnId);
-        await this.normalizeTaskPositions(transaction, destinationColumnId);
+        const [sourceTasks, destTasks] = await Promise.all([
+          transaction.task.findMany({
+            where: { columnId: sourceColumnId },
+            orderBy: { position: 'asc' },
+            select: { id: true },
+          }),
+          transaction.task.findMany({
+            where: { columnId: destinationColumnId },
+            orderBy: { position: 'asc' },
+            select: { id: true },
+          }),
+        ]);
+
+        const remainingSource = sourceTasks.filter((item) => item.id !== taskId);
+        const targetIndex = Math.min(
+          Math.max(destinationIndex, 0),
+          destTasks.length,
+        );
+        destTasks.splice(targetIndex, 0, { id: taskId });
+
+        const tempOffset = Math.max(sourceTasks.length, destTasks.length) + 100000;
+
+        await Promise.all([
+          remainingSource.length > 0
+            ? transaction.task.updateMany({
+                where: { columnId: sourceColumnId },
+                data: { position: { increment: tempOffset } },
+              })
+            : Promise.resolve(),
+          transaction.task.updateMany({
+            where: { columnId: destinationColumnId },
+            data: { position: { increment: tempOffset } },
+          }),
+        ]);
+
+        await Promise.all([
+          ...remainingSource.map((t, index) =>
+            transaction.task.update({
+              where: { id: t.id },
+              data: { position: index },
+            }),
+          ),
+          ...destTasks.map((t, index) =>
+            transaction.task.update({
+              where: { id: t.id },
+              data: {
+                columnId: destinationColumnId,
+                position: index,
+              },
+            }),
+          ),
+        ]);
       }
 
       return transaction.task.findUniqueOrThrow({ where: { id: taskId } });
-    });
-  }
-
-  private async normalizeTaskPositions(
-    transaction: Prisma.TransactionClient,
-    columnId: string,
-  ) {
-    const tasks = await transaction.task.findMany({
-      where: { columnId },
-      orderBy: [{ position: 'asc' }, { id: 'asc' }],
-      select: { id: true },
-    });
-
-    if (tasks.length === 0) {
-      return;
-    }
-
-    await transaction.task.updateMany({
-      where: { columnId },
-      data: { position: { increment: tasks.length + 1 } },
-    });
-
-    for (const [position, task] of tasks.entries()) {
-      await transaction.task.update({
-        where: { id: task.id },
-        data: { position },
-      });
-    }
+    }, { timeout: 15000 });
   }
 }

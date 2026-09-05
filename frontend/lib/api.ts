@@ -25,13 +25,29 @@ export async function api<T>(path: string, token?: string | null, init?: Request
   });
 
   if (!response.ok) {
-    if (token && (response.status === 401 || response.status === 403)) {
+    if (token && response.status === 401) {
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new Event(SESSION_EXPIRED_EVENT));
       }
     }
-    const message = await response.text();
-    throw new ApiError(response.status, message || `Request failed with status ${response.status}`);
+    const rawText = await response.text();
+    let errorMessage = rawText;
+    try {
+      const parsed = JSON.parse(rawText);
+      if (Array.isArray(parsed.message)) {
+        errorMessage = parsed.message.join(', ');
+      } else if (typeof parsed.message === 'string' && parsed.message.trim().length > 0) {
+        errorMessage = parsed.message;
+      } else if (typeof parsed.error === 'string') {
+        errorMessage = parsed.error;
+      }
+    } catch {
+      // fallback to rawText if not valid JSON
+    }
+    throw new ApiError(
+      response.status,
+      errorMessage || `Request failed with status ${response.status}`,
+    );
   }
 
   if (response.status === 204) {

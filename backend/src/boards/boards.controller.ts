@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Param,
+  ParseUUIDPipe,
   Patch,
   Post,
   UseGuards,
@@ -50,28 +51,34 @@ export class BoardsController {
   }
 
   @Get(':id')
-  async getBoard(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+  async getBoard(
+    @CurrentUser() user: AuthUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
     return this.boardsService.getBoardForUser(id, user.id);
   }
 
   @Patch(':id')
   async updateBoard(
     @CurrentUser() user: AuthUser,
-    @Param('id') id: string,
+    @Param('id', new ParseUUIDPipe()) id: string,
     @Body() dto: UpdateBoardDto,
   ) {
     return this.boardsService.updateBoard(id, user.id, dto.name ?? '');
   }
 
   @Delete(':id')
-  async deleteBoard(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+  async deleteBoard(
+    @CurrentUser() user: AuthUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
     return this.boardsService.deleteBoard(id, user.id);
   }
 
   @Post(':boardId/members')
   async addMember(
     @CurrentUser() user: AuthUser,
-    @Param('boardId') boardId: string,
+    @Param('boardId', new ParseUUIDPipe()) boardId: string,
     @Body() dto: AddMemberDto,
   ) {
     return this.boardsService.addMember(boardId, user.id, dto.email);
@@ -80,7 +87,7 @@ export class BoardsController {
   @Get(':boardId/members')
   async listMembers(
     @CurrentUser() user: AuthUser,
-    @Param('boardId') boardId: string,
+    @Param('boardId', new ParseUUIDPipe()) boardId: string,
   ) {
     return this.boardsService.listMembers(boardId, user.id);
   }
@@ -88,8 +95,8 @@ export class BoardsController {
   @Delete(':boardId/members/:userId')
   async removeMember(
     @CurrentUser() user: AuthUser,
-    @Param('boardId') boardId: string,
-    @Param('userId') userId: string,
+    @Param('boardId', new ParseUUIDPipe()) boardId: string,
+    @Param('userId', new ParseUUIDPipe()) userId: string,
   ) {
     return this.boardsService.removeMember(boardId, user.id, userId);
   }

@@ -1,8 +1,8 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
-import { AppModule } from '../app.module';
-import { PrismaService } from '../prisma/prisma.service';
+import { AppModule } from '../app.module.js';
+import { PrismaService } from '../prisma/prisma.service.js';
 
 describe('Columns', () => {
   let app: INestApplication;
@@ -22,7 +22,6 @@ describe('Columns', () => {
       }),
     );
     prisma = moduleRef.get(PrismaService);
-    app.setGlobalPrefix('api');
     await app.init();
   });
 
@@ -93,8 +92,8 @@ describe('Columns', () => {
       where: { boardId },
       orderBy: { position: 'asc' },
     });
-    expect(remainingColumns.map((column) => column.position)).toEqual([0, 1]);
-    expect(remainingColumns.map((column) => column.name)).toEqual([
+    expect(remainingColumns.map((column: { position: number }) => column.position)).toEqual([0, 1]);
+    expect(remainingColumns.map((column: { name: string }) => column.name)).toEqual([
       'Backlog',
       'Done',
     ]);

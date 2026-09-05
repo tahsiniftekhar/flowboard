@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Param,
+  ParseUUIDPipe,
   Patch,
   Post,
   UseGuards,
@@ -27,7 +28,7 @@ export class ColumnsController {
   @Post('boards/:boardId/columns')
   async createColumn(
     @CurrentUser() user: AuthUser,
-    @Param('boardId') boardId: string,
+    @Param('boardId', new ParseUUIDPipe()) boardId: string,
     @Body() dto: ColumnNameDto,
   ) {
     return this.columnsService.createColumn(boardId, user.id, dto.name);
@@ -36,7 +37,7 @@ export class ColumnsController {
   @Patch('columns/:id')
   async updateColumn(
     @CurrentUser() user: AuthUser,
-    @Param('id') columnId: string,
+    @Param('id', new ParseUUIDPipe()) columnId: string,
     @Body() dto: ColumnNameDto,
   ) {
     return this.columnsService.updateColumn(columnId, user.id, dto.name);
@@ -45,7 +46,7 @@ export class ColumnsController {
   @Delete('columns/:id')
   async deleteColumn(
     @CurrentUser() user: AuthUser,
-    @Param('id') columnId: string,
+    @Param('id', new ParseUUIDPipe()) columnId: string,
   ) {
     return this.columnsService.deleteColumn(columnId, user.id);
   }

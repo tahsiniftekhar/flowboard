@@ -12,7 +12,9 @@ import { JwtAuthGuard } from './jwt-auth.guard.js';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
-        secret: config.getOrThrow<string>('JWT_SECRET'),
+        secret:
+          config.get<string>('JWT_SECRET') ??
+          'flowboard-super-secret-jwt-key-for-development-32chars',
         signOptions: { expiresIn: '1h' },
       }),
     }),
