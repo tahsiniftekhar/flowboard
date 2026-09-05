@@ -16,10 +16,10 @@ import {
   MaxLength,
   Min,
 } from 'class-validator';
-import { AuthUser } from '../auth/auth.service';
-import { CurrentUser } from '../auth/current-user.decorator';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { TasksService } from './tasks.service';
+import type { AuthUser } from '../auth/auth.service.js';
+import { CurrentUser } from '../auth/current-user.decorator.js';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard.js';
+import { TasksService } from './tasks.service.js';
 
 class CreateTaskDto {
   @IsString()

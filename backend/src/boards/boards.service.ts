@@ -4,8 +4,8 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { BoardRole } from '../generated/prisma/enums';
-import { PrismaService } from '../prisma/prisma.service';
+import { BoardRole } from '../generated/prisma/enums.js';
+import { PrismaService } from '../prisma/prisma.service.js';
 
 export interface BoardAccess {
   boardId: string;

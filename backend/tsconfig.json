@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
-    "module": "commonjs",
-    "moduleResolution": "bundler",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
     "resolvePackageJsonExports": true,
     "esModuleInterop": true,
     "isolatedModules": true,
@@ -20,5 +20,9 @@
     "strict": true,
     "strictPropertyInitialization": false,
     "resolveJsonModule": true
+  },
+  "ts-node": {
+    "esm": true,
+    "experimentalResolver": true
   }
 }

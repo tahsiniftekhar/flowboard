@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
-import { AuthModule } from '../auth/auth.module';
-import { BoardsController } from './boards.controller';
-import { BoardsService } from './boards.service';
+import { AuthModule } from '../auth/auth.module.js';
+import { BoardsController } from './boards.controller.js';
+import { BoardsService } from './boards.service.js';
 
 @Module({
   imports: [AuthModule],

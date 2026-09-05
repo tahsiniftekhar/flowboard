@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
-import { AuthModule } from '../auth/auth.module';
-import { BoardsModule } from '../boards/boards.module';
-import { ColumnsController } from './columns.controller';
-import { ColumnsService } from './columns.service';
+import { AuthModule } from '../auth/auth.module.js';
+import { BoardsModule } from '../boards/boards.module.js';
+import { ColumnsController } from './columns.controller.js';
+import { ColumnsService } from './columns.service.js';
 
 @Module({
   imports: [AuthModule, BoardsModule],

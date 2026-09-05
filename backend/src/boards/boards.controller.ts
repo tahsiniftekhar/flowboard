@@ -9,10 +9,10 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { IsEmail, IsNotEmpty, MaxLength } from 'class-validator';
-import { AuthUser } from '../auth/auth.service';
-import { CurrentUser } from '../auth/current-user.decorator';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { BoardsService } from './boards.service';
+import type { AuthUser } from '../auth/auth.service.js';
+import { CurrentUser } from '../auth/current-user.decorator.js';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard.js';
+import { BoardsService } from './boards.service.js';
 
 class CreateBoardDto {
   @IsNotEmpty()

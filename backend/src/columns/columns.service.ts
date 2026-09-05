@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { BoardsService } from '../boards/boards.service';
-import { PrismaService } from '../prisma/prisma.service';
+import { BoardsService } from '../boards/boards.service.js';
+import { PrismaService } from '../prisma/prisma.service.js';
 
 @Injectable()
 export class ColumnsService {

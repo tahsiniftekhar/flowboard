@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
-import { AuthModule } from '../auth/auth.module';
-import { BoardsModule } from '../boards/boards.module';
-import { TasksController } from './tasks.controller';
-import { TasksService } from './tasks.service';
+import { AuthModule } from '../auth/auth.module.js';
+import { BoardsModule } from '../boards/boards.module.js';
+import { TasksController } from './tasks.controller.js';
+import { TasksService } from './tasks.service.js';
 
 @Module({
   imports: [AuthModule, BoardsModule],

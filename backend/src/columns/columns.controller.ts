@@ -8,10 +8,10 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { IsNotEmpty, MaxLength } from 'class-validator';
-import { AuthUser } from '../auth/auth.service';
-import { CurrentUser } from '../auth/current-user.decorator';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { ColumnsService } from './columns.service';
+import type { AuthUser } from '../auth/auth.service.js';
+import { CurrentUser } from '../auth/current-user.decorator.js';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard.js';
+import { ColumnsService } from './columns.service.js';
 
 class ColumnNameDto {
   @IsNotEmpty()
