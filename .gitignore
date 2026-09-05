@@ -33,3 +33,5 @@ AGENTS.md
 .cursor/
 .windsurf/
 prisma-next.md
+
+*.tsbuildinfo

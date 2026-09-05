@@ -32,7 +32,7 @@ The backend reads these variables from `backend/.env`:
 | `DIRECT_URL`   | Direct PostgreSQL URL for migrations (recommended for Neon) | Empty locally                                                             |
 | `JWT_SECRET`   | Secret used to sign access tokens                           | Use a long random value                                                   |
 | `PORT`         | Backend HTTP port                                           | `4000`                                                                    |
-| `FRONTEND_URL` | Allowed frontend origin                                     | `http://localhost:3000`                                                   |
+| `FRONTEND_URL` | Allowed frontend origin(s), comma-separated                 | `http://localhost:3000`                                                   |
 
 The frontend reads `NEXT_PUBLIC_API_URL`. It defaults to `http://localhost:4000`, so no separate frontend environment file is required for the standard local setup.
 
