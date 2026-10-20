@@ -65,5 +65,6 @@ jobs:
           cache-dependency-path: frontend/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint
-      - run: pnpm exec tsc --noEmit
+      # next typegen writes the global PageProps/LayoutProps types that tsc needs
+      - run: pnpm typecheck
       - run: pnpm build
