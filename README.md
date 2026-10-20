@@ -2,6 +2,16 @@
 
 Flowboard is a focused Kanban workspace for organizing boards, columns, tasks, and collaboration.
 
+## Screenshots
+
+![Board view in light mode](docs/screenshots/board-light.png)
+
+| | |
+| --- | --- |
+| ![Board view in dark mode](docs/screenshots/board-dark.png) | ![Boards dashboard](docs/screenshots/dashboard-dark.png) |
+| ![Task details dialog](docs/screenshots/task-detail-light.png) | ![Board filtered by priority](docs/screenshots/board-filtered-light.png) |
+| ![Login page](docs/screenshots/login-light.png) | ![Mobile board in dark mode](docs/screenshots/mobile-board-dark.png) |
+
 ## Prerequisites
 
 - Node.js 20 or newer
