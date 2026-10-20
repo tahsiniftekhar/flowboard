@@ -170,6 +170,27 @@ docker compose down -v
 
 After a reset, run migrations and seed again.
 
+## Deployment (Docker)
+
+The API ships as a container image, built by GitHub Actions on every push to `main`
+([.github/workflows/docker-image.yml](.github/workflows/docker-image.yml)) and pushed to
+`ghcr.io/tahsiniftekhar/flowboard-api` (`latest` and `sha-<commit>`). Nothing is built on the server.
+The frontend deploys separately (Vercel).
+
+```bash
+docker run --env-file backend/.env -p 4000:4000 ghcr.io/tahsiniftekhar/flowboard-api   # start the API
+docker run --env-file backend/.env ghcr.io/tahsiniftekhar/flowboard-api migrate           # prisma migrate deploy
+docker run --env-file backend/.env ghcr.io/tahsiniftekhar/flowboard-api reset             # wipe + migrate + seed
+```
+
+- Env: `DATABASE_URL`, `JWT_SECRET`, `FRONTEND_URL` (comma-separated origins), optional `PORT` (default 4000)
+  and `DIRECT_URL`. Migrations do not run on start unless `MIGRATE_ON_START=true`.
+- Health check: `GET /api/health` (checks the database, all routes use the `/api` prefix).
+- Sized for a 192 MB container: the image sets `NODE_OPTIONS=--max-old-space-size=128`; the idle API uses about 70 MB.
+- `reset` (or `pnpm run db:reset-demo`) drops the database schema, re-applies migrations and re-seeds.
+  The public demo runs it nightly. It destroys all data, so only point it at the demo database.
+- Logs go to stdout; runs as the non-root `node` user.
+
 ## API Overview
 
 All board, column, and task routes require a bearer token from login or registration.
