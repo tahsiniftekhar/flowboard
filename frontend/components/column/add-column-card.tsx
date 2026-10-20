@@ -10,30 +10,47 @@ interface AddColumnCardProps {
 }
 
 export function AddColumnCard({ busy, onAddColumn }: AddColumnCardProps) {
+  const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     if (!name.trim()) return;
-    const success = await onAddColumn(name.trim());
-    if (success) {
+    if (await onAddColumn(name.trim())) {
       setName('');
+      setOpen(false);
     }
+  }
+
+  if (!open) {
+    return (
+      <button type="button" className="add-column-card add-column-collapsed" onClick={() => setOpen(true)}>
+        <IconPlus /> Add column
+      </button>
+    );
   }
 
   return (
     <form className="add-column-card" onSubmit={handleSubmit}>
-      <strong>Build your workflow</strong>
-      <span>Add another column when your process grows.</span>
       <input
+        autoFocus
         aria-label="New column name"
         value={name}
+        maxLength={100}
         onChange={(event) => setName(event.target.value)}
+        onKeyDown={(event) => {
+          if (event.key === 'Escape') setOpen(false);
+        }}
         placeholder="Column name"
       />
-      <Button busy={busy}>
-        <IconPlus /> Add column
-      </Button>
+      <div className="quick-task-actions">
+        <Button busy={busy} disabled={!name.trim()}>
+          Add column
+        </Button>
+        <button type="button" className="text-button" onClick={() => setOpen(false)}>
+          Cancel
+        </button>
+      </div>
     </form>
   );
 }

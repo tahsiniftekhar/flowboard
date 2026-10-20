@@ -1,121 +1,67 @@
 /* eslint-disable react-hooks/refs */
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import type { Task } from '@/types';
-import {
-  IconArrowRight,
-  IconDots,
-  IconGrip,
-  IconPencil,
-  IconTrash,
-} from '@/components/ui/icons';
+import { priorityOf } from '@/lib/task-utils';
+import { IconArrowRight, IconGrip, IconPencil, IconTrash } from '@/components/ui/icons';
+import { Menu } from '@/components/ui/menu';
+import { TaskMeta } from './task-meta';
 
 interface TaskCardProps {
   task: Task;
-  edit: () => void;
+  dragDisabled: boolean;
+  open: () => void;
   move: () => void;
   remove: () => void;
 }
 
-export function TaskCard({ task, edit, move, remove }: TaskCardProps) {
-  const sortable = useSortable({ id: task.id });
-  const [menuOpen, setMenuOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!menuOpen) return;
-    const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setMenuOpen(false);
-      }
-    };
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setMenuOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    document.addEventListener('keydown', handleKeyDown);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [menuOpen]);
+export function TaskCard({ task, dragDisabled, open, move, remove }: TaskCardProps) {
+  const sortable = useSortable({
+    id: task.id,
+    data: { type: 'task' },
+    disabled: dragDisabled,
+  });
 
   const style = {
     transform: CSS.Transform.toString(sortable.transform),
     transition: sortable.transition,
-    opacity: sortable.isDragging ? 0.35 : 1,
   };
 
   return (
     <article
       ref={sortable.setNodeRef}
       style={style}
-      className={`task-card ${menuOpen ? 'menu-open' : ''} ${sortable.isDragging ? 'is-dragging' : ''}`}
+      className={`task-card prio-${priorityOf(task).toLowerCase()} ${sortable.isDragging ? 'is-dragging' : ''}`}
     >
       <button
         type="button"
         className="drag-handle"
         aria-label={`Drag ${task.title}`}
+        title={dragDisabled ? 'Clear filters to reorder' : 'Drag to move'}
         {...sortable.attributes}
         {...sortable.listeners}
       >
         <IconGrip />
       </button>
-      <div className="task-copy">
-        <h4 title={task.title}>{task.title}</h4>
-        {task.description && <p title={task.description}>{task.description}</p>}
+      <div className="task-main">
+        <h4 className="task-title">
+          <button type="button" className="task-open" onClick={open} title={task.title}>
+            {task.title}
+          </button>
+        </h4>
+        <TaskMeta task={task} />
       </div>
-      <div className="task-actions" ref={menuRef}>
-        <button
-          type="button"
-          className="task-menu-trigger"
-          aria-label={`Actions for ${task.title}`}
-          aria-expanded={menuOpen}
-          onClick={() => setMenuOpen((open) => !open)}
-        >
-          <IconDots />
-        </button>
-        {menuOpen && (
-          <div className="task-menu" role="menu">
-            <button
-              type="button"
-              role="menuitem"
-              onClick={() => {
-                setMenuOpen(false);
-                move();
-              }}
-            >
-              <IconArrowRight /> Move to...
-            </button>
-            <button
-              type="button"
-              role="menuitem"
-              onClick={() => {
-                setMenuOpen(false);
-                edit();
-              }}
-            >
-              <IconPencil /> Edit
-            </button>
-            <button
-              type="button"
-              role="menuitem"
-              className="menu-item-danger"
-              onClick={() => {
-                setMenuOpen(false);
-                remove();
-              }}
-            >
-              <IconTrash /> Delete
-            </button>
-          </div>
-        )}
-      </div>
+      <Menu
+        label={`Actions for ${task.title}`}
+        triggerClassName="menu-trigger task-menu-trigger"
+        items={[
+          { label: 'Edit', icon: <IconPencil />, onSelect: open },
+          { label: 'Move to…', icon: <IconArrowRight />, onSelect: move },
+          { label: 'Delete', icon: <IconTrash />, danger: true, onSelect: remove },
+        ]}
+      />
     </article>
   );
 }

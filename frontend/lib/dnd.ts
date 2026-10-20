@@ -1,5 +1,28 @@
-import { defaultDropAnimationSideEffects, type DropAnimation } from '@dnd-kit/core';
+import {
+  closestCenter,
+  closestCorners,
+  defaultDropAnimationSideEffects,
+  type CollisionDetection,
+  type DropAnimation,
+} from '@dnd-kit/core';
+import { arrayMove } from '@dnd-kit/sortable';
 import type { Board, Task } from '@/types';
+
+export type DragType = 'column' | 'task';
+
+// Columns only collide with other columns; tasks collide with tasks and columns
+// (so they can be dropped into an empty column).
+export const boardCollisionDetection: CollisionDetection = (args) => {
+  if (args.active.data.current?.type === 'column') {
+    return closestCenter({
+      ...args,
+      droppableContainers: args.droppableContainers.filter(
+        (container) => container.data.current?.type === 'column',
+      ),
+    });
+  }
+  return closestCorners(args);
+};
 
 export const dropAnimationConfig: DropAnimation = {
   duration: 200,
@@ -43,5 +66,16 @@ export function moveTaskInBoard(
       ...column,
       tasks: column.tasks.map((task, position) => ({ ...task, position })),
     })),
+  };
+}
+
+export function moveColumnInBoard(board: Board, columnId: string, destinationIndex: number): Board {
+  const columns = board.columns ?? [];
+  const from = columns.findIndex((column) => column.id === columnId);
+  if (from < 0) return board;
+  const to = Math.max(0, Math.min(destinationIndex, columns.length - 1));
+  return {
+    ...board,
+    columns: arrayMove(columns, from, to).map((column, position) => ({ ...column, position })),
   };
 }

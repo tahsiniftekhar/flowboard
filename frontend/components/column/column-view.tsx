@@ -1,161 +1,183 @@
 /* eslint-disable react-hooks/refs */
 'use client';
 
-import { useState, type FormEvent } from 'react';
-import { useDroppable } from '@dnd-kit/core';
-import {
-  SortableContext,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable';
+import { useRef, useState, type FormEvent } from 'react';
+import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import type { Column, Task } from '@/types';
 import { TaskCard } from '@/components/task/task-card';
-import { IconPlus, IconTrash } from '@/components/ui/icons';
+import { IconGrip, IconPencil, IconPlus, IconTrash } from '@/components/ui/icons';
+import { Menu } from '@/components/ui/menu';
+import { QuickAddTask } from './quick-add-task';
 
 interface ColumnViewProps {
   column: Column;
-  addTask: () => void;
-  quickCreate: boolean;
-  quickTitle: string;
-  setQuickTitle: (value: string) => void;
-  submitQuickTask: (event: FormEvent) => void;
-  cancelQuickTask: () => void;
+  index: number;
+  tasks: Task[];
+  filtering: boolean;
+  dragDisabled: boolean;
+  isTaskDragging: boolean;
+  quickOpen: boolean;
   quickBusy: boolean;
-  edit: (task: Task) => void;
-  move: (task: Task) => void;
-  remove: (task: Task) => void;
-  renameColumn: (name: string) => Promise<boolean>;
-  renameBusy: boolean;
-  deleteColumn: () => void;
+  onQuickOpen: () => void;
+  onQuickClose: () => void;
+  onQuickAdd: (title: string) => Promise<boolean>;
+  onMoreOptions: (title: string) => void;
+  onOpenTask: (task: Task) => void;
+  onMoveTask: (task: Task) => void;
+  onDeleteTask: (task: Task) => void;
+  onRename: (name: string) => Promise<boolean>;
+  onDelete: () => void;
 }
 
 export function ColumnView({
   column,
-  addTask,
-  quickCreate,
-  quickTitle,
-  setQuickTitle,
-  submitQuickTask,
-  cancelQuickTask,
+  index,
+  tasks,
+  filtering,
+  dragDisabled,
+  isTaskDragging,
+  quickOpen,
   quickBusy,
-  edit,
-  move,
-  remove,
-  renameColumn,
-  renameBusy,
-  deleteColumn,
+  onQuickOpen,
+  onQuickClose,
+  onQuickAdd,
+  onMoreOptions,
+  onOpenTask,
+  onMoveTask,
+  onDeleteTask,
+  onRename,
+  onDelete,
 }: ColumnViewProps) {
-  const drop = useDroppable({ id: column.id });
+  const sortable = useSortable({
+    id: column.id,
+    data: { type: 'column' },
+    disabled: dragDisabled,
+  });
   const [editing, setEditing] = useState(false);
   const [draftName, setDraftName] = useState(column.name);
 
-  async function submitRename(event: FormEvent) {
-    event.preventDefault();
-    if (!draftName.trim()) return;
-    const saved = await renameColumn(draftName.trim());
-    if (saved) setEditing(false);
+  // Enter, Escape and blur can all end an edit; only the first one counts.
+  const finishedRef = useRef(false);
+
+  function startRename() {
+    finishedRef.current = false;
+    setDraftName(column.name);
+    setEditing(true);
   }
 
+  async function submitRename(event?: FormEvent) {
+    event?.preventDefault();
+    if (finishedRef.current) return;
+    finishedRef.current = true;
+    const name = draftName.trim();
+    setEditing(false);
+    if (name && name !== column.name) await onRename(name);
+  }
+
+  const style = {
+    transform: CSS.Translate.toString(sortable.transform),
+    transition: sortable.transition,
+  };
+  const isOver = isTaskDragging && sortable.isOver;
+  const classes = ['column', isOver && 'column-over', sortable.isDragging && 'is-dragging']
+    .filter(Boolean)
+    .join(' ');
+
   return (
-    <div ref={drop.setNodeRef} className={`column ${drop.isOver ? 'column-over' : ''}`}>
-      <div className="column-heading">
-        <div>
-          <span className="column-index">0{column.position + 1}</span>
-          {editing ? (
-            <form className="inline-column-name" onSubmit={submitRename}>
-              <input
-                autoFocus
-                value={draftName}
-                onChange={(event) => setDraftName(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === 'Escape') setEditing(false);
-                }}
-                aria-label={`Rename ${column.name}`}
-              />
-              <button type="submit" className="text-button" disabled={renameBusy}>
-                Save
-              </button>
-            </form>
-          ) : (
-            <button
-              type="button"
-              className="column-title-button"
-              title={`Rename ${column.name}`}
-              onClick={() => {
-                setDraftName(column.name);
-                setEditing(true);
+    <section
+      ref={sortable.setNodeRef}
+      style={style}
+      className={classes}
+      aria-label={`${column.name} column`}
+    >
+      <div className="column-header">
+        <button
+          type="button"
+          className="column-grip"
+          aria-label={`Drag ${column.name} column`}
+          title={dragDisabled ? 'Clear filters to reorder' : 'Drag to reorder column'}
+          {...sortable.attributes}
+          {...sortable.listeners}
+        >
+          <IconGrip />
+        </button>
+        <span className="column-dot" style={{ background: `var(--dot-${index % 5})` }} aria-hidden="true" />
+        {editing ? (
+          <form className="column-rename" onSubmit={submitRename}>
+            <input
+              autoFocus
+              value={draftName}
+              maxLength={100}
+              onChange={(event) => setDraftName(event.target.value)}
+              onFocus={(event) => event.currentTarget.select()}
+              onBlur={() => void submitRename()}
+              onKeyDown={(event) => {
+                if (event.key === 'Escape') {
+                  event.stopPropagation();
+                  finishedRef.current = true;
+                  setEditing(false);
+                }
               }}
-            >
-              {column.name}
-            </button>
-          )}
-          <span className="task-count">{column.tasks.length}</span>
-        </div>
-        <div className="column-actions">
+              aria-label={`Rename ${column.name}`}
+            />
+          </form>
+        ) : (
           <button
             type="button"
-            className="column-delete-btn"
-            title={`Delete ${column.name} column`}
-            aria-label={`Delete ${column.name} column`}
-            onClick={deleteColumn}
+            className="column-name"
+            title="Click to rename"
+            onClick={startRename}
           >
-            <IconTrash />
+            {column.name}
           </button>
-        </div>
+        )}
+        <span className="task-count" aria-label={`${column.tasks.length} tasks`}>
+          {filtering ? `${tasks.length}/${column.tasks.length}` : column.tasks.length}
+        </span>
+        <Menu
+          label={`Actions for ${column.name} column`}
+          items={[
+            { label: 'Add task', icon: <IconPlus />, onSelect: onQuickOpen },
+            { label: 'Rename', icon: <IconPencil />, onSelect: startRename },
+            { label: 'Delete', icon: <IconTrash />, danger: true, onSelect: onDelete },
+          ]}
+        />
       </div>
-      <SortableContext
-        items={column.tasks.map((task) => task.id)}
-        strategy={verticalListSortingStrategy}
-      >
+
+      <SortableContext items={tasks.map((task) => task.id)} strategy={verticalListSortingStrategy}>
         <div className="task-list">
-          {column.tasks.map((task) => (
+          {tasks.map((task) => (
             <TaskCard
               key={task.id}
               task={task}
-              edit={() => edit(task)}
-              move={() => move(task)}
-              remove={() => remove(task)}
+              dragDisabled={dragDisabled}
+              open={() => onOpenTask(task)}
+              move={() => onMoveTask(task)}
+              remove={() => onDeleteTask(task)}
             />
           ))}
-          {!column.tasks.length && (
-            <p className="column-empty">No tasks yet. Add one to get started.</p>
+          {tasks.length === 0 && (
+            <p className="column-empty">
+              {filtering && column.tasks.length > 0 ? 'No matching tasks' : 'No tasks yet'}
+              {!filtering && <span>Drop a task here or add one below</span>}
+            </p>
           )}
         </div>
       </SortableContext>
-      {quickCreate ? (
-        <form className="quick-task" onSubmit={submitQuickTask}>
-          <input
-            autoFocus
-            value={quickTitle}
-            onChange={(event) => setQuickTitle(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === 'Escape') cancelQuickTask();
-            }}
-            placeholder="Enter task title..."
-            aria-label="New task title"
-          />
-          <div className="quick-task-actions">
-            <button
-              type="submit"
-              className="button"
-              disabled={quickBusy || !quickTitle.trim()}
-            >
-              <IconPlus /> {quickBusy ? 'Adding...' : 'Add'}
-            </button>
-            <button
-              type="button"
-              className="text-button"
-              onClick={cancelQuickTask}
-              disabled={quickBusy}
-            >
-              Cancel
-            </button>
-          </div>
-        </form>
+
+      {quickOpen ? (
+        <QuickAddTask
+          busy={quickBusy}
+          onSubmit={onQuickAdd}
+          onMoreOptions={onMoreOptions}
+          onClose={onQuickClose}
+        />
       ) : (
-        <button type="button" className="add-task" onClick={addTask}>
+        <button type="button" className="add-task" onClick={onQuickOpen}>
           <IconPlus /> Add task
         </button>
       )}
-    </div>
+    </section>
   );
 }

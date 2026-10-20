@@ -1,25 +1,23 @@
 'use client';
 
-import { useState, type FormEvent } from 'react';
 import Image from 'next/image';
-import type { Board, User } from '@/types';
-import { Button } from '@/components/ui/button';
-import { IconPlus, IconSidebar } from '@/components/ui/icons';
-import { Status } from '@/components/ui/status';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+
+import type { BoardSummary, User } from '@/types';
+import { IconBoards, IconPlus, IconSidebar } from '@/components/ui/icons';
+import { ThemeToggle } from '@/components/ui/theme-toggle';
 
 interface SidebarProps {
   user: User;
-  boards: Board[];
+  boards: BoardSummary[];
   isLoadingBoards: boolean;
   isBoardsError: boolean;
   onRetryBoards: () => void;
-  selectedBoardId: string | null;
-  onSelectBoard: (boardId: string) => void;
-  onCreateBoard: (name: string) => Promise<boolean>;
-  isCreatingBoard: boolean;
   isCollapsed: boolean;
   onToggleCollapse: () => void;
   isMobileOpen: boolean;
+  onNavigate: () => void;
   onSignOut: () => void;
 }
 
@@ -29,38 +27,25 @@ export function Sidebar({
   isLoadingBoards,
   isBoardsError,
   onRetryBoards,
-  selectedBoardId,
-  onSelectBoard,
-  onCreateBoard,
-  isCreatingBoard,
   isCollapsed,
   onToggleCollapse,
   isMobileOpen,
+  onNavigate,
   onSignOut,
 }: SidebarProps) {
-  const [newBoardName, setNewBoardName] = useState('');
-  const [notice, setNotice] = useState('');
-
-  async function handleCreateBoard(event: FormEvent) {
-    event.preventDefault();
-    if (!newBoardName.trim()) return;
-    setNotice('');
-    const success = await onCreateBoard(newBoardName.trim());
-    if (success) {
-      setNewBoardName('');
-      setNotice('Board created');
-    } else {
-      setNotice('Could not create board. Try again.');
-    }
-  }
+  const pathname = usePathname();
+  const activeBoardId = pathname.startsWith('/boards/') ? pathname.split('/')[2] : null;
+  const isAllBoards = pathname === '/boards';
 
   return (
-    <aside className={`sidebar ${isCollapsed ? 'sidebar-collapsed' : ''} ${isMobileOpen ? 'mobile-open' : ''}`}>
+    <aside
+      className={`sidebar ${isCollapsed ? 'sidebar-collapsed' : ''} ${isMobileOpen ? 'mobile-open' : ''}`}
+    >
       <div className="sidebar-top">
-        <div className="brand" title="Flowboard">
+        <Link href="/boards" className="brand" title="Flowboard" onClick={onNavigate}>
           <Image src="/fb-icon.png" alt="Flowboard" width={30} height={30} />
           {!isCollapsed && <strong>Flowboard</strong>}
-        </div>
+        </Link>
         <button
           type="button"
           className="sidebar-toggle-btn"
@@ -82,53 +67,72 @@ export function Sidebar({
         )}
       </div>
 
-      {!isCollapsed && <div className="sidebar-label">Your boards</div>}
-
-      {isLoadingBoards && <p className="muted">{isCollapsed ? '...' : 'Loading boards...'}</p>}
-
-      {isBoardsError && (
-        <>
-          {!isCollapsed && <p className="error">We couldn&apos;t load your boards.</p>}
-          <button type="button" className="text-button" onClick={onRetryBoards}>
-            Try again
-          </button>
-        </>
-      )}
-
-      {boards.map((item) => (
-        <button
-          type="button"
-          title={item.name}
-          className={`board-link ${selectedBoardId === item.id ? 'selected' : ''}`}
-          key={item.id}
-          onClick={() => onSelectBoard(item.id)}
+      <nav aria-label="Boards" className="sidebar-boards">
+        <Link
+          href="/boards"
+          title="All boards"
+          className={`board-link ${isAllBoards ? 'selected' : ''}`}
+          aria-current={isAllBoards ? 'page' : undefined}
+          onClick={onNavigate}
         >
-          <span>{item.name[0]?.toUpperCase()}</span>
-          <b>{item.name}</b>
+          <span>
+            <IconBoards />
+          </span>
+          <b>All boards</b>
+        </Link>
+
+        <div className="sidebar-label">
+          {!isCollapsed && <>Your boards</>}
+          {!isCollapsed && (
+            <Link
+              href="/boards?new=1"
+              className="sidebar-add"
+              title="New board"
+              aria-label="New board"
+              onClick={onNavigate}
+            >
+              <IconPlus />
+            </Link>
+          )}
+        </div>
+
+        {isLoadingBoards &&
+          [0, 1, 2].map((item) => <div key={item} className="skeleton sidebar-skeleton" />)}
+
+        {isBoardsError && (
+          <>
+            {!isCollapsed && <p className="error">We couldn&apos;t load your boards.</p>}
+            <button type="button" className="text-button" onClick={onRetryBoards}>
+              Try again
+            </button>
+          </>
+        )}
+
+        {boards.map((item) => (
+          <Link
+            href={`/boards/${item.id}`}
+            title={item.name}
+            className={`board-link ${activeBoardId === item.id ? 'selected' : ''}`}
+            aria-current={activeBoardId === item.id ? 'page' : undefined}
+            key={item.id}
+            onClick={onNavigate}
+          >
+            <span>{item.name[0]?.toUpperCase()}</span>
+            <b>{item.name}</b>
+          </Link>
+        ))}
+
+        {!isLoadingBoards && !isBoardsError && boards.length === 0 && !isCollapsed && (
+          <p className="muted">No boards yet.</p>
+        )}
+      </nav>
+
+      <div className="sidebar-footer">
+        <ThemeToggle />
+        <button type="button" className="logout" title="Sign out" onClick={onSignOut}>
+          {isCollapsed ? 'Exit' : 'Sign out'}
         </button>
-      ))}
-
-      {boards.length === 0 && !isCollapsed && <p className="muted">No boards yet.</p>}
-
-      {!isCollapsed && (
-        <form className="new-board" onSubmit={handleCreateBoard}>
-          <input
-            aria-label="Board name"
-            value={newBoardName}
-            onChange={(event) => setNewBoardName(event.target.value)}
-            placeholder="Board name"
-          />
-          <Button busy={isCreatingBoard}>
-            <IconPlus /> Create board
-          </Button>
-        </form>
-      )}
-
-      {notice && !isCollapsed && <Status error={notice.startsWith('Could')}>{notice}</Status>}
-
-      <button type="button" className="logout" title="Sign out" onClick={onSignOut}>
-        {isCollapsed ? 'Exit' : 'Sign out'}
-      </button>
+      </div>
     </aside>
   );
 }
