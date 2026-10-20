@@ -153,6 +153,59 @@ describe('Concurrent task movement', () => {
     await expectContiguous(columns, tasks.length);
   });
 
+  it('rejects the stale one of two moves of the same card with 409', async () => {
+    const { owner, member, columns, tasks } = await setupSharedBoard();
+    const [todo, doing] = columns;
+    const card = tasks.find((task) => task.columnId === todo)!;
+
+    // Hold both column locks so the two requests finish their unlocked
+    // pre-read (card is in Todo) and then queue on the lock. Whichever gets
+    // the lock first moves the card; the other must notice it is stale.
+    let pending!: Promise<request.Response[]>;
+    await prisma.$transaction(
+      async (transaction) => {
+        for (const id of [...columns].sort()) {
+          await transaction.$queryRaw`SELECT id FROM "Column" WHERE id = ${id}::uuid FOR UPDATE`;
+        }
+        pending = Promise.all([
+          move(owner.token, card.id, doing, 0),
+          move(member.token, card.id, doing, 3),
+        ]);
+        await waitForLockWaiters(2);
+      },
+      { timeout: 10000 },
+    );
+    // Commit released the locks; the queued requests run now.
+    const responses = await pending;
+
+    const statuses = responses.map((response) => response.status).sort();
+    expect(statuses).toEqual([200, 409]);
+    await expectContiguous(columns, tasks.length);
+
+    const moved = await prisma.task.findUniqueOrThrow({
+      where: { id: card.id },
+    });
+    const winner = responses.find((response) => response.status === 200)!;
+    expect(moved.columnId).toBe(doing);
+    expect(moved.position).toBe(winner.body.position);
+  });
+
+  /**
+   * Waits until `count` backends are blocked on a lock. Gives up after 3s so
+   * that, with the locks removed, the test fails on its assertions instead
+   * of hanging.
+   */
+  async function waitForLockWaiters(count: number) {
+    const deadline = Date.now() + 3000;
+    while (Date.now() < deadline) {
+      const [{ waiting }] = await prisma.$queryRaw<{ waiting: number }[]>`
+        SELECT count(*)::int AS waiting FROM pg_stat_activity
+        WHERE datname = current_database() AND wait_event_type = 'Lock'`;
+      if (waiting >= count) return;
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    }
+  }
+
   it('keeps column order contiguous when two users reorder columns at once', async () => {
     const { owner, member, columns } = await setupSharedBoard();
     const board = await prisma.column.findUniqueOrThrow({
