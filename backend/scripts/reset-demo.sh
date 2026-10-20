@@ -2,12 +2,21 @@
 # Nightly demo reset: wipes the database, re-applies migrations and re-seeds.
 # The seed skips when users exist, so the schema is dropped first.
 # Destroys all data in the target schema. Only point it at the demo database.
+# Refuses to run unless DEMO_RESET_ALLOWED=true and the database is "flowboard"
+# (scripts/demo-reset-guard.mjs). `--check` runs the guard only and touches nothing.
 set -eu
 
 cd "$(dirname "$0")/.."
 export PATH="$PWD/node_modules/.bin:$PATH"
 
 : "${DATABASE_URL:?DATABASE_URL is required}"
+
+node scripts/demo-reset-guard.mjs
+
+if [ "${1:-}" = "--check" ]; then
+  echo "Demo reset allowed for this database (check only, nothing changed)."
+  exit 0
+fi
 
 CONFIG="--config prisma7.config.ts"
 SCHEMA=$(node -e 'console.log(new URL(process.env.DATABASE_URL).searchParams.get("schema") || "public")')

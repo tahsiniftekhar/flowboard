@@ -188,7 +188,10 @@ docker run --env-file backend/.env ghcr.io/tahsiniftekhar/flowboard-api reset   
 - Health check: `GET /api/health` (checks the database, all routes use the `/api` prefix).
 - Sized for a 192 MB container: the image sets `NODE_OPTIONS=--max-old-space-size=128`; the idle API uses about 70 MB.
 - `reset` (or `pnpm run db:reset-demo`) drops the database schema, re-applies migrations and re-seeds.
-  The public demo runs it nightly. It destroys all data, so only point it at the demo database.
+  The public demo runs it nightly. It destroys all data, so it refuses to start (exit 1, nothing touched)
+  unless `DEMO_RESET_ALLOWED=true` is set and `DATABASE_URL` (and `DIRECT_URL`, if set) names the
+  database `flowboard`. `reset --check` (or `sh scripts/reset-demo.sh --check`) runs only that guard.
+  Nightly cron: `docker compose run --rm -e DEMO_RESET_ALLOWED=true flowboard-api reset`.
 - Logs go to stdout; runs as the non-root `node` user.
 
 ## API Overview
