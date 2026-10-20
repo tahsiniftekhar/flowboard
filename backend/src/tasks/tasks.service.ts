@@ -340,6 +340,6 @@ async function lockColumns(
   columnIds: string[],
 ) {
   for (const id of [...new Set(columnIds)].sort()) {
-    await transaction.$queryRaw`SELECT id FROM "Column" WHERE id = ${id}::uuid FOR UPDATE`;
+    await transaction.$queryRaw`SELECT id FROM "Column" WHERE id = ${id}::uuid`;
   }
 }

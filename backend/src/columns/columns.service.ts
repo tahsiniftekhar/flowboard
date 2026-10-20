@@ -138,5 +138,5 @@ async function lockBoard(
   transaction: Prisma.TransactionClient,
   boardId: string,
 ) {
-  await transaction.$queryRaw`SELECT id FROM "Board" WHERE id = ${boardId}::uuid FOR UPDATE`;
+  await transaction.$queryRaw`SELECT id FROM "Board" WHERE id = ${boardId}::uuid`;
 }
