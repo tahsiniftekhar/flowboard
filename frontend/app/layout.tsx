@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: 'Flowboard',
-  description: 'A focused workspace for moving work forward.',
+  description: 'Shared Kanban boards for moving work forward.',
 };
 
 const themeScript = `(function(){try{var t=localStorage.getItem('flowboard_theme');var d=t==='dark'||(t!=='light'&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.setAttribute('data-theme',d?'dark':'light')}catch(e){document.documentElement.setAttribute('data-theme','light')}})()`;

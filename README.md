@@ -1,6 +1,10 @@
 # Flowboard
 
-Flowboard is a focused Kanban workspace for organizing boards, columns, tasks, and collaboration.
+[![CI](https://github.com/tahsiniftekhar/flowboard/actions/workflows/ci.yml/badge.svg)](https://github.com/tahsiniftekhar/flowboard/actions/workflows/ci.yml)
+
+Flowboard is a shared Kanban board: boards, columns, and tasks, with **board-scoped authorization** (each board has an owner and invited members, and every request is checked against the board that owns the resource).
+
+The part I care most about is that card order stays correct when two people drag cards at the same moment. Positions are dense integers, each move rewrites the column inside one transaction, and concurrent moves are serialized with a parent-row lock. A race test proves this. See [docs/ordering.md](docs/ordering.md) for the reasoning and the tradeoff against fractional indexing / LexoRank.
 
 ## Screenshots
 
@@ -207,7 +211,6 @@ Backend:
 ```bash
 cd backend
 pnpm run test
-pnpm run test:e2e
 pnpm run lint
 pnpm exec tsc --noEmit
 pnpm run build
@@ -222,17 +225,19 @@ pnpm exec tsc --noEmit
 pnpm run build
 ```
 
-The backend test suite requires a working test database configuration. If Jest fails before collecting tests because of the local Node/Jest ESM configuration, resolve that environment issue before treating the test run as a functional result.
+Backend tests are integration tests against a real PostgreSQL database. Run `docker compose up -d db` and `pnpm exec prisma migrate deploy` first. CI runs the same steps on every push ([.github/workflows/ci.yml](.github/workflows/ci.yml)).
 
 ## Architecture Decisions
 
 - The application is a modular monolith: NestJS modules own authentication, boards, members, columns, and tasks.
 - PostgreSQL is the source of truth, accessed through Prisma.
 - The Next.js client uses TanStack Query for server state and dnd-kit for task movement.
-- JWT authentication is used for the API; authorization is checked server-side for every protected resource.
+- JWT authentication is used for the API. Authorization is board-scoped: every board, column, and task request resolves the owning board server-side and checks that the caller is its owner or a member. There is no workspace or tenant layer above boards.
 - There is no Redux, realtime transport, queue, cache server, or microservice layer.
 - Docker Compose is intentionally limited to the PostgreSQL dependency.
 
 ## Task Ordering
 
 Tasks use dense integer positions beginning at zero within each column. Move operations run in a database transaction, validate both source and destination access, shift affected tasks, move the task, and normalize positions so each column remains contiguous after the operation. Columns use the same dense-position strategy via `PATCH /columns/:id/move`.
+
+Concurrent writes are serialized with `SELECT ... FOR UPDATE` on the parent column (or on the board, for column reordering). Two-column moves take their locks in id order so they cannot deadlock. If a card was moved by someone else in the meantime, the API returns `409` and the board refetches. `src/tasks/task-concurrency.spec.ts` fires simultaneous moves from two users and asserts that positions stay `0..n-1`. The full write-up is in [docs/ordering.md](docs/ordering.md).

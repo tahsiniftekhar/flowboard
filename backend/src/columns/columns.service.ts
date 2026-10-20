@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { BoardsService } from '../boards/boards.service.js';
+import type { Prisma } from '../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
 @Injectable()
@@ -13,6 +14,7 @@ export class ColumnsService {
     await this.boardsService.requireBoardAccess(boardId, userId);
 
     return this.prisma.$transaction(async (transaction) => {
+      await lockBoard(transaction, boardId);
       const lastColumn = await transaction.column.findFirst({
         where: { boardId },
         orderBy: { position: 'desc' },
@@ -61,6 +63,7 @@ export class ColumnsService {
 
     return this.prisma.$transaction(
       async (transaction) => {
+        await lockBoard(transaction, column.boardId);
         const columns = await transaction.column.findMany({
           where: { boardId: column.boardId },
           orderBy: { position: 'asc' },
@@ -107,11 +110,17 @@ export class ColumnsService {
     await this.boardsService.requireBoardAccess(column.boardId, userId);
 
     await this.prisma.$transaction(async (transaction) => {
+      await lockBoard(transaction, column.boardId);
+      // Re-read under the lock: a concurrent reorder may have shifted it.
+      const { position } = await transaction.column.findUniqueOrThrow({
+        where: { id: columnId },
+        select: { position: true },
+      });
       await transaction.column.delete({ where: { id: columnId } });
       await transaction.column.updateMany({
         where: {
           boardId: column.boardId,
-          position: { gt: column.position },
+          position: { gt: position },
         },
         data: { position: { decrement: 1 } },
       });
@@ -119,4 +128,15 @@ export class ColumnsService {
 
     return { success: true };
   }
+}
+
+/**
+ * Column positions are dense per board, so every write that shifts them
+ * holds the board row lock until the transaction ends.
+ */
+async function lockBoard(
+  transaction: Prisma.TransactionClient,
+  boardId: string,
+) {
+  await transaction.$queryRaw`SELECT id FROM "Board" WHERE id = ${boardId}::uuid FOR UPDATE`;
 }

@@ -14,7 +14,7 @@ import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { useQueryClient } from '@tanstack/react-query';
 
 import type { Board, Column, Notice, Task } from '@/types';
-import { api } from '@/lib/api';
+import { api, ApiError } from '@/lib/api';
 import { moveColumnInBoard, moveTaskInBoard, type DragType } from '@/lib/dnd';
 
 interface UseBoardDndOptions {
@@ -118,9 +118,17 @@ export function useBoardDnd({ board, token, notify }: UseBoardDndOptions) {
         body: JSON.stringify({ destinationColumnId: destinationCol.id, destinationIndex: finalIndex }),
       });
       refetch();
-    } catch {
+    } catch (error) {
       restore(snapshot);
-      notify({ text: 'Move failed. Server state was restored.', error: true });
+      refetch();
+      // 409: a teammate moved this card first. Show their result, not ours.
+      const conflict = error instanceof ApiError && error.status === 409;
+      notify({
+        text: conflict
+          ? 'A teammate moved this card first. Showing the latest board.'
+          : 'Move failed. Server state was restored.',
+        error: !conflict,
+      });
     }
   }
 

@@ -126,7 +126,7 @@ export function Dashboard() {
     <div className="dash">
       <div className="dash-header">
         <div>
-          <p className="eyebrow">YOUR WORKSPACE</p>
+          <p className="eyebrow">YOUR BOARDS</p>
           <h1>Hello, {firstName}</h1>
           <p>Pick up where you left off, or start something new.</p>
         </div>
@@ -165,7 +165,7 @@ export function Dashboard() {
           </div>
           <h2>Create your first board</h2>
           <p>
-            A board is a shared workspace with columns and tasks. Create one to start tracking
+            A board holds columns and tasks, shared with the people you invite. Create one to start tracking
             work, then invite teammates.
           </p>
           <Button type="button" onClick={() => setIsCreateOpen(true)}>

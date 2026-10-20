@@ -39,7 +39,7 @@ function BrandPanel() {
       </div>
 
       <div className="auth-brand-copy">
-        <p className="eyebrow">FLOWBOARD / WORKSPACE</p>
+        <p className="eyebrow">FLOWBOARD / BOARDS</p>
         <h1>Make progress visible.</h1>
         <p>One calm place for the work your team is carrying. Plan in columns, share with a click.</p>
         <ul className="auth-features">
@@ -145,7 +145,7 @@ export function AuthForm({ mode }: { mode: Mode }) {
 
         <form className="auth-card" onSubmit={handleSubmit} noValidate>
           <div>
-            <h2>{isRegister ? 'Start a workspace' : 'Welcome back'}</h2>
+            <h2>{isRegister ? 'Start your first board' : 'Welcome back'}</h2>
           </div>
           <p className="auth-sub">
             {isRegister ? 'Create an account to start your first board.' : 'Log in to pick up your boards.'}

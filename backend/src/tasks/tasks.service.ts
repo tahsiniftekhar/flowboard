@@ -1,10 +1,12 @@
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { BoardsService } from '../boards/boards.service.js';
+import type { Prisma } from '../generated/prisma/client.js';
 import type { TaskPriority } from '../generated/prisma/enums.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
@@ -45,6 +47,7 @@ export class TasksService {
     await this.assertAssignable(column.boardId, details.assigneeId);
 
     return this.prisma.$transaction(async (transaction) => {
+      await lockColumns(transaction, [columnId]);
       const lastTask = await transaction.task.findFirst({
         where: { columnId },
         orderBy: { position: 'desc' },
@@ -142,11 +145,24 @@ export class TasksService {
     await this.boardsService.requireBoardAccess(task.column.boardId, userId);
 
     await this.prisma.$transaction(async (transaction) => {
+      await lockColumns(transaction, [task.columnId]);
+      // Re-read under the lock: a concurrent move may have changed it.
+      const current = await transaction.task.findUnique({
+        where: { id: taskId },
+        select: { columnId: true, position: true },
+      });
+      if (!current) {
+        throw new NotFoundException('Task not found');
+      }
+      if (current.columnId !== task.columnId) {
+        throw new ConflictException('Task was moved, please retry');
+      }
+
       await transaction.task.delete({ where: { id: taskId } });
       await transaction.task.updateMany({
         where: {
-          columnId: task.columnId,
-          position: { gt: task.position },
+          columnId: current.columnId,
+          position: { gt: current.position },
         },
         data: { position: { decrement: 1 } },
       });
@@ -163,6 +179,7 @@ export class TasksService {
     const access = await this.prisma.task.findUnique({
       where: { id: taskId },
       select: {
+        columnId: true,
         column: {
           select: { boardId: true },
         },
@@ -176,6 +193,14 @@ export class TasksService {
     await this.boardsService.requireBoardAccess(access.column.boardId, userId);
 
     return this.prisma.$transaction(async (transaction) => {
+      // Serialize every write to the affected columns. Without this, two
+      // concurrent moves read the same snapshot and their position shifts
+      // collide on the (columnId, position) unique constraint.
+      await lockColumns(transaction, [
+        access.columnId,
+        destinationColumnId,
+      ]);
+
       const task = await transaction.task.findUnique({
         where: { id: taskId },
         select: {
@@ -204,6 +229,10 @@ export class TasksService {
         throw new ForbiddenException(
           'Tasks cannot be moved between different boards',
         );
+      }
+
+      if (task.columnId !== access.columnId) {
+        throw new ConflictException('Task was moved, please retry');
       }
 
       const sourceColumnId = task.columnId;
@@ -298,5 +327,19 @@ export class TasksService {
         include: taskInclude,
       });
     }, { timeout: 15000 });
+  }
+}
+
+/**
+ * Takes row locks on the given columns for the rest of the transaction.
+ * Ids are sorted so two transactions touching the same pair of columns
+ * always lock in the same order and cannot deadlock.
+ */
+async function lockColumns(
+  transaction: Prisma.TransactionClient,
+  columnIds: string[],
+) {
+  for (const id of [...new Set(columnIds)].sort()) {
+    await transaction.$queryRaw`SELECT id FROM "Column" WHERE id = ${id}::uuid FOR UPDATE`;
   }
 }
