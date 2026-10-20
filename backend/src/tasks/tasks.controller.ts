@@ -9,6 +9,8 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import {
+  IsDateString,
+  IsEnum,
   IsInt,
   IsNotEmpty,
   IsOptional,
@@ -20,28 +22,42 @@ import {
 import type { AuthUser } from '../auth/auth.service.js';
 import { CurrentUser } from '../auth/current-user.decorator.js';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard.js';
-import { TasksService } from './tasks.service.js';
+import { TaskPriority } from '../generated/prisma/enums.js';
+import { TasksService, type TaskDetails } from './tasks.service.js';
 
-class CreateTaskDto {
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(200)
-  title: string;
-
+// Optional detail fields accept null on update so the client can clear them.
+class TaskDetailsDto implements TaskDetails {
   @IsOptional()
   @IsString()
-  description?: string;
+  @MaxLength(5000)
+  description?: string | null;
+
+  @IsOptional()
+  @IsEnum(TaskPriority)
+  priority?: TaskPriority;
+
+  @IsOptional()
+  @IsDateString({ strict: true })
+  dueDate?: string | null;
+
+  @IsOptional()
+  @IsUUID()
+  assigneeId?: string | null;
 }
 
-class UpdateTaskDto {
+class CreateTaskDto extends TaskDetailsDto {
   @IsString()
   @IsNotEmpty()
   @MaxLength(200)
   title: string;
+}
 
+class UpdateTaskDto extends TaskDetailsDto {
   @IsOptional()
   @IsString()
-  description?: string;
+  @IsNotEmpty()
+  @MaxLength(200)
+  title?: string;
 }
 
 class MoveTaskDto {
@@ -64,12 +80,7 @@ export class TasksController {
     @Param('columnId', new ParseUUIDPipe()) columnId: string,
     @Body() dto: CreateTaskDto,
   ) {
-    return this.tasksService.createTask(
-      columnId,
-      user.id,
-      dto.title,
-      dto.description,
-    );
+    return this.tasksService.createTask(columnId, user.id, dto);
   }
 
   @Patch('tasks/:id')
@@ -78,12 +89,7 @@ export class TasksController {
     @Param('id', new ParseUUIDPipe()) taskId: string,
     @Body() dto: UpdateTaskDto,
   ) {
-    return this.tasksService.updateTask(
-      taskId,
-      user.id,
-      dto.title,
-      dto.description,
-    );
+    return this.tasksService.updateTask(taskId, user.id, dto);
   }
 
   @Delete('tasks/:id')

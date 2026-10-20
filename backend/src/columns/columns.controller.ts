@@ -8,7 +8,7 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { IsNotEmpty, MaxLength } from 'class-validator';
+import { IsInt, IsNotEmpty, MaxLength, Min } from 'class-validator';
 import type { AuthUser } from '../auth/auth.service.js';
 import { CurrentUser } from '../auth/current-user.decorator.js';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard.js';
@@ -18,6 +18,12 @@ class ColumnNameDto {
   @IsNotEmpty()
   @MaxLength(80)
   name: string;
+}
+
+class MoveColumnDto {
+  @IsInt()
+  @Min(0)
+  destinationIndex: number;
 }
 
 @Controller()
@@ -41,6 +47,19 @@ export class ColumnsController {
     @Body() dto: ColumnNameDto,
   ) {
     return this.columnsService.updateColumn(columnId, user.id, dto.name);
+  }
+
+  @Patch('columns/:id/move')
+  async moveColumn(
+    @CurrentUser() user: AuthUser,
+    @Param('id', new ParseUUIDPipe()) columnId: string,
+    @Body() dto: MoveColumnDto,
+  ) {
+    return this.columnsService.moveColumn(
+      columnId,
+      user.id,
+      dto.destinationIndex,
+    );
   }
 
   @Delete('columns/:id')

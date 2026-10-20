@@ -47,6 +47,53 @@ export class ColumnsService {
     });
   }
 
+  async moveColumn(columnId: string, userId: string, destinationIndex: number) {
+    const column = await this.prisma.column.findUnique({
+      where: { id: columnId },
+      select: { boardId: true },
+    });
+
+    if (!column) {
+      throw new NotFoundException('Column not found');
+    }
+
+    await this.boardsService.requireBoardAccess(column.boardId, userId);
+
+    return this.prisma.$transaction(
+      async (transaction) => {
+        const columns = await transaction.column.findMany({
+          where: { boardId: column.boardId },
+          orderBy: { position: 'asc' },
+          select: { id: true },
+        });
+
+        const ordered = columns.filter((item) => item.id !== columnId);
+        const targetIndex = Math.min(destinationIndex, ordered.length);
+        ordered.splice(targetIndex, 0, { id: columnId });
+
+        // Shift out of the way first so the unique (boardId, position)
+        // constraint never sees two columns at the same position.
+        await transaction.column.updateMany({
+          where: { boardId: column.boardId },
+          data: { position: { increment: columns.length + 100000 } },
+        });
+
+        for (const [position, item] of ordered.entries()) {
+          await transaction.column.update({
+            where: { id: item.id },
+            data: { position },
+          });
+        }
+
+        return transaction.column.findMany({
+          where: { boardId: column.boardId },
+          orderBy: { position: 'asc' },
+        });
+      },
+      { timeout: 15000 },
+    );
+  }
+
   async deleteColumn(columnId: string, userId: string) {
     const column = await this.prisma.column.findUnique({
       where: { id: columnId },

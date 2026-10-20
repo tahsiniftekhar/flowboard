@@ -388,4 +388,135 @@ describe('Boards', () => {
       .set('Authorization', `Bearer ${secondOwnerToken}`)
       .expect(403);
   });
+
+  it('lists boards with role and content counts', async () => {
+    const owner = await request(app.getHttpServer())
+      .post('/auth/register')
+      .send({
+        name: 'Count Owner',
+        email: `count-owner-${Date.now()}@example.com`,
+        password: 'StrongPass123!',
+      })
+      .expect(201);
+    const member = await request(app.getHttpServer())
+      .post('/auth/register')
+      .send({
+        name: 'Count Member',
+        email: `count-member-${Date.now()}@example.com`,
+        password: 'StrongPass123!',
+      })
+      .expect(201);
+    const ownerToken = owner.body.accessToken;
+
+    const board = await request(app.getHttpServer())
+      .post('/boards')
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send({ name: 'Counted Board' })
+      .expect(201);
+    await request(app.getHttpServer())
+      .post(`/boards/${board.body.id}/members`)
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .send({ email: member.body.user.email })
+      .expect(201);
+    for (const name of ['Todo', 'Done']) {
+      const column = await request(app.getHttpServer())
+        .post(`/boards/${board.body.id}/columns`)
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .send({ name })
+        .expect(201);
+      await request(app.getHttpServer())
+        .post(`/columns/${column.body.id}/tasks`)
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .send({ title: `${name} task` })
+        .expect(201);
+    }
+
+    const ownerList = await request(app.getHttpServer())
+      .get('/boards')
+      .set('Authorization', `Bearer ${ownerToken}`)
+      .expect(200);
+    expect(ownerList.body[0]).toMatchObject({
+      id: board.body.id,
+      role: 'OWNER',
+      memberCount: 2,
+      columnCount: 2,
+      taskCount: 2,
+      owner: { name: 'Count Owner' },
+    });
+
+    const memberList = await request(app.getHttpServer())
+      .get('/boards')
+      .set('Authorization', `Bearer ${member.body.accessToken}`)
+      .expect(200);
+    expect(memberList.body[0]).toMatchObject({
+      id: board.body.id,
+      role: 'MEMBER',
+    });
+  });
+
+  it('lets members leave a board but not the owner', async () => {
+    const owner = await request(app.getHttpServer())
+      .post('/auth/register')
+      .send({
+        name: 'Leave Owner',
+        email: `leave-owner-${Date.now()}@example.com`,
+        password: 'StrongPass123!',
+      })
+      .expect(201);
+    const member = await request(app.getHttpServer())
+      .post('/auth/register')
+      .send({
+        name: 'Leave Member',
+        email: `leave-member-${Date.now()}@example.com`,
+        password: 'StrongPass123!',
+      })
+      .expect(201);
+    const other = await request(app.getHttpServer())
+      .post('/auth/register')
+      .send({
+        name: 'Other Member',
+        email: `leave-other-${Date.now()}@example.com`,
+        password: 'StrongPass123!',
+      })
+      .expect(201);
+
+    const board = await request(app.getHttpServer())
+      .post('/boards')
+      .set('Authorization', `Bearer ${owner.body.accessToken}`)
+      .send({ name: 'Leavable Board' })
+      .expect(201);
+    for (const user of [member, other]) {
+      await request(app.getHttpServer())
+        .post(`/boards/${board.body.id}/members`)
+        .set('Authorization', `Bearer ${owner.body.accessToken}`)
+        .send({ email: user.body.user.email })
+        .expect(201);
+    }
+
+    // A member cannot remove someone else.
+    await request(app.getHttpServer())
+      .delete(`/boards/${board.body.id}/members/${other.body.user.id}`)
+      .set('Authorization', `Bearer ${member.body.accessToken}`)
+      .expect(403);
+
+    // The owner cannot leave their own board.
+    await request(app.getHttpServer())
+      .delete(`/boards/${board.body.id}/members/${owner.body.user.id}`)
+      .set('Authorization', `Bearer ${owner.body.accessToken}`)
+      .expect(403);
+
+    await request(app.getHttpServer())
+      .delete(`/boards/${board.body.id}/members/${member.body.user.id}`)
+      .set('Authorization', `Bearer ${member.body.accessToken}`)
+      .expect(200);
+
+    await request(app.getHttpServer())
+      .get(`/boards/${board.body.id}`)
+      .set('Authorization', `Bearer ${member.body.accessToken}`)
+      .expect(403);
+    await request(app.getHttpServer())
+      .get(`/boards/${board.body.id}`)
+      .set('Authorization', `Bearer ${other.body.accessToken}`)
+      .expect(200);
+  });
 });

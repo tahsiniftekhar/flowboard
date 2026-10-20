@@ -30,19 +30,37 @@ export class BoardsService {
   }
 
   async listBoards(userId: string) {
-    return this.prisma.board.findMany({
+    const boards = await this.prisma.board.findMany({
       where: {
         OR: [{ ownerId: userId }, { members: { some: { userId } } }],
       },
       orderBy: { createdAt: 'desc' },
+      include: {
+        owner: { select: { id: true, name: true } },
+        _count: { select: { members: true, columns: true } },
+        columns: { select: { _count: { select: { tasks: true } } } },
+      },
     });
+
+    return boards.map(({ _count, columns, ...board }) => ({
+      ...board,
+      role: board.ownerId === userId ? 'OWNER' : 'MEMBER',
+      memberCount: _count.members,
+      columnCount: _count.columns,
+      taskCount: columns.reduce((sum, column) => sum + column._count.tasks, 0),
+    }));
   }
 
   async getBoardForUser(boardId: string, userId: string) {
     const board = await this.prisma.board.findUnique({
       where: { id: boardId },
       include: {
-        members: true,
+        members: {
+          orderBy: { createdAt: 'asc' },
+          include: {
+            user: { select: { id: true, name: true, email: true } },
+          },
+        },
         owner: {
           select: { id: true, name: true, email: true },
         },
@@ -51,6 +69,9 @@ export class BoardsService {
           include: {
             tasks: {
               orderBy: { position: 'asc' },
+              include: {
+                assignee: { select: { id: true, name: true, email: true } },
+              },
             },
           },
         },
@@ -143,6 +164,20 @@ export class BoardsService {
     };
   }
 
+  async isBoardMember(boardId: string, userId: string) {
+    const membership = await this.prisma.boardMember.findUnique({
+      where: { boardId_userId: { boardId, userId } },
+      select: { id: true },
+    });
+    if (membership) return true;
+
+    const board = await this.prisma.board.findUnique({
+      where: { id: boardId },
+      select: { ownerId: true },
+    });
+    return board?.ownerId === userId;
+  }
+
   private async requireBoardOwner(boardId: string, userId: string) {
     const board = await this.prisma.board.findUnique({
       where: { id: boardId },
@@ -229,11 +264,18 @@ export class BoardsService {
     });
   }
 
-  async removeMember(boardId: string, ownerId: string, userId: string) {
-    const board = await this.requireBoardOwner(boardId, ownerId);
-
-    if (board.ownerId === userId) {
-      throw new ForbiddenException('The board owner cannot be removed');
+  async removeMember(boardId: string, actorId: string, userId: string) {
+    // Members may remove themselves (leave); only the owner may remove others.
+    if (actorId === userId) {
+      const access = await this.requireBoardAccess(boardId, actorId);
+      if (access.role === 'OWNER') {
+        throw new ForbiddenException('The board owner cannot leave the board');
+      }
+    } else {
+      const board = await this.requireBoardOwner(boardId, actorId);
+      if (board.ownerId === userId) {
+        throw new ForbiddenException('The board owner cannot be removed');
+      }
     }
 
     const membership = await this.prisma.boardMember.findUnique({
@@ -246,9 +288,15 @@ export class BoardsService {
       throw new NotFoundException('Board member not found');
     }
 
-    await this.prisma.boardMember.delete({
-      where: { boardId_userId: { boardId, userId } },
-    });
+    await this.prisma.$transaction([
+      this.prisma.task.updateMany({
+        where: { assigneeId: userId, column: { boardId } },
+        data: { assigneeId: null },
+      }),
+      this.prisma.boardMember.delete({
+        where: { boardId_userId: { boardId, userId } },
+      }),
+    ]);
 
     return { success: true };
   }

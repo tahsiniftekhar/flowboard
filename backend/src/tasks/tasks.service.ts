@@ -1,10 +1,24 @@
 import {
+  BadRequestException,
   ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { BoardsService } from '../boards/boards.service.js';
+import type { TaskPriority } from '../generated/prisma/enums.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+
+export interface TaskDetails {
+  title?: string;
+  description?: string | null;
+  priority?: TaskPriority;
+  dueDate?: string | null;
+  assigneeId?: string | null;
+}
+
+export const taskInclude = {
+  assignee: { select: { id: true, name: true, email: true } },
+} as const;
 
 @Injectable()
 export class TasksService {
@@ -16,8 +30,7 @@ export class TasksService {
   async createTask(
     columnId: string,
     userId: string,
-    title: string,
-    description?: string,
+    details: TaskDetails & { title: string },
   ) {
     const column = await this.prisma.column.findUnique({
       where: { id: columnId },
@@ -29,6 +42,7 @@ export class TasksService {
     }
 
     await this.boardsService.requireBoardAccess(column.boardId, userId);
+    await this.assertAssignable(column.boardId, details.assigneeId);
 
     return this.prisma.$transaction(async (transaction) => {
       const lastTask = await transaction.task.findFirst({
@@ -40,20 +54,16 @@ export class TasksService {
       return transaction.task.create({
         data: {
           columnId,
-          title,
-          description,
+          ...this.toTaskData(details),
+          title: details.title,
           position: (lastTask?.position ?? -1) + 1,
         },
+        include: taskInclude,
       });
     });
   }
 
-  async updateTask(
-    taskId: string,
-    userId: string,
-    title: string,
-    description?: string,
-  ) {
+  async updateTask(taskId: string, userId: string, details: TaskDetails) {
     const task = await this.prisma.task.findUnique({
       where: { id: taskId },
       select: {
@@ -71,11 +81,45 @@ export class TasksService {
     }
 
     await this.boardsService.requireBoardAccess(task.column.boardId, userId);
+    await this.assertAssignable(task.column.boardId, details.assigneeId);
 
     return this.prisma.task.update({
       where: { id: taskId },
-      data: { title, description },
+      data: this.toTaskData(details),
+      include: taskInclude,
     });
+  }
+
+  // undefined leaves a field untouched; null clears it.
+  private toTaskData(details: TaskDetails) {
+    return {
+      title: details.title,
+      description: details.description,
+      priority: details.priority,
+      assigneeId: details.assigneeId,
+      dueDate:
+        details.dueDate === undefined
+          ? undefined
+          : details.dueDate === null
+            ? null
+            : new Date(details.dueDate),
+    };
+  }
+
+  private async assertAssignable(
+    boardId: string,
+    assigneeId: string | null | undefined,
+  ) {
+    if (!assigneeId) return;
+    const isMember = await this.boardsService.isBoardMember(
+      boardId,
+      assigneeId,
+    );
+    if (!isMember) {
+      throw new BadRequestException(
+        'Tasks can only be assigned to board members',
+      );
+    }
   }
 
   async deleteTask(taskId: string, userId: string) {
@@ -249,7 +293,10 @@ export class TasksService {
         ]);
       }
 
-      return transaction.task.findUniqueOrThrow({ where: { id: taskId } });
+      return transaction.task.findUniqueOrThrow({
+        where: { id: taskId },
+        include: taskInclude,
+      });
     }, { timeout: 15000 });
   }
 }
