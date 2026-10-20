@@ -20,6 +20,7 @@
     "test:cov": "NODE_OPTIONS=--experimental-vm-modules jest --coverage --runInBand",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
+    "bench": "NODE_OPTIONS=--experimental-vm-modules jest --runInBand --testRegex 'bench\\.ts$'",
     "db:seed": "tsx prisma/seed.ts",
     "db:migrate:deploy": "prisma migrate deploy --config prisma7.config.ts",
     "db:reset-demo": "sh scripts/reset-demo.sh",

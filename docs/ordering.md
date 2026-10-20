@@ -9,7 +9,12 @@ A move is a read followed by writes. It loads the column, splices the card into 
 - The unique constraint fires and the request fails with a 500.
 - A card that the first move brought in is missing from the second move's list. The temporary offset gets applied to it and never reset, so it ends up at position 100000-something.
 
-Either way the column stops being contiguous. `src/tasks/task-concurrency.spec.ts` reproduces this. With the locks removed, the same-column test fails consistently.
+Either way the column stops being contiguous. `src/tasks/task-concurrency.spec.ts` reproduces this. The [`demo/no-locks`](https://github.com/tahsiniftekhar/flowboard/tree/demo/no-locks) branch removes the `FOR UPDATE` clauses and nothing else, and [its CI run fails](https://github.com/tahsiniftekhar/flowboard/actions/runs/39489116710):
+
+- **Crossing moves between two columns.** The moves return `500` because their position shifts collide on the unique constraint.
+- **Two users moving the same card.** Both get `200`, so one move silently overwrites the other (a lost update). With the locks, exactly one gets `200` and the other gets `409`.
+
+The same-column and column-reorder race tests pass even without the locks, so on their own they don't prove the locks are needed.
 
 ## The fix: lock the parent row, in a fixed order
 
@@ -37,6 +42,6 @@ I considered `SERIALIZABLE` isolation as well. It is also correct, but conflicts
 | **API** | `destinationIndex` maps directly to a position | Client or server converts index → neighbour keys |
 | **Debuggability** | `position` reads as a list index | Opaque strings like `0|hzzzzz:` |
 
-**Why dense integers here.** Columns in a Kanban board hold tens of cards, not tens of thousands. Rewriting 30 rows inside one transaction costs less than a network round-trip. In exchange I get an invariant I can assert in a test (`positions == [0..n-1]`) and a unique constraint the database enforces for me. A board is also a small team working in one place, so contention is bursty and local. One short lock per column fits that.
+**Why dense integers here.** Columns in a Kanban board hold tens of cards, not tens of thousands. A move on a 30-card column, including the access check, the lock and the full rewrite, has a p50 of 13 ms (p95 17 ms). A move between two 30-card columns has a p50 of 27 ms (p95 31 ms). These were measured with `pnpm bench` over 200 runs against Postgres 16 in Docker on an Apple-silicon laptop. In exchange I get an invariant I can assert in a test (`positions == [0..n-1]`) and a unique constraint the database enforces for me. A board is also a small team working in one place, so contention is bursty and local. One short lock per column fits that.
 
 **When I would switch.** I would switch if a single list grew large (thousands of items) or if moves arrived at high rates from many writers, for example a public backlog or a realtime collaborative list. Then the O(n) rewrite and the per-column lock would become the bottleneck. Fractional keys make each move one row, at the cost of rebalancing and a weaker invariant.
